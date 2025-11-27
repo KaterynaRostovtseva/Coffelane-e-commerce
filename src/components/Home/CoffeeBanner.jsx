@@ -12,11 +12,6 @@ const CoffeeBanner = () => {
   const videoRef = useRef(null);
   const { items: products, loading } = useSelector((state) => state.products);
 
-  const weeklySpecialProduct = React.useMemo(() => {
-    if (!products || !Array.isArray(products)) return null;
-    return products.find(product => product.is_special) || products[0];
-  }, [products]);
-
   const fallbackProduct = {
     name: 'Coffee Starbucks Veranda Blend natural roasted ground coffee',
     price: 20,
@@ -24,11 +19,16 @@ const CoffeeBanner = () => {
     photos_url: [{ id: 'default', url: imageBg, position: 0 }]
   };
 
+  const weeklySpecialProduct = React.useMemo(() => {
+    if (!products || !Array.isArray(products)) return null;
+    return products.find(product => product.is_special) || fallbackProduct;
+  }, [products]);
+
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.load();
       const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) playPromise.catch(() => {});
+      if (playPromise !== undefined) playPromise.catch(() => { });
     }
   }, []);
 
@@ -43,10 +43,10 @@ const CoffeeBanner = () => {
 
     const updatedSupplies = product.supplies
       ? product.supplies.map(supply =>
-          supply.id === selectedSupply.id
-            ? { ...supply, price: discountedPrice.toString() }
-            : supply
-        )
+        supply.id === selectedSupply.id
+          ? { ...supply, price: discountedPrice.toString() }
+          : supply
+      )
       : [{ id: 'default', price: discountedPrice.toString() }];
 
     dispatch(addToCart({
@@ -101,7 +101,7 @@ const CoffeeBanner = () => {
             Limited time 15% off
           </Typography>
 
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems:'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', mb: 2 }}>
             <Typography sx={{ fontWeight: 700, fontSize: 48, color: '#fff' }}>
               ${Number(productToShow?.supplies?.[0]?.price || productToShow?.price || 0 * 0.85).toFixed(2)}
             </Typography>

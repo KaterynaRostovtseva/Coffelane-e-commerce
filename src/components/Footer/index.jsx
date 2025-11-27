@@ -78,9 +78,9 @@ export default function Footer() {
                     hello@coffelane.com
                 </Typography>
                 <Box sx={{display: 'flex', gap: 2, mb: 4}}>
-                    <Box component='img' src={instagram} alt='instagram'
+                    <Box component='img' src={instagram} alt='instagram'  onClick={() => window.open("https://www.instagram.com", "_blank")}
                          sx={{mt: 2, width: '24px', height: '24px', cursor: 'pointer'}}/>
-                    <Box component='img' src={facebook} alt='facebook'
+                    <Box component='img' src={facebook} alt='facebook'   onClick={() => window.open("https://www.facebook.com", "_blank")}
                          sx={{mt: 2, width: '24px', height: '24px', cursor: 'pointer'}}/>   
                 </Box>
                 <Typography sx={{...h7}}>

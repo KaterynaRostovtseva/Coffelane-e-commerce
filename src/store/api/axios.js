@@ -13,7 +13,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "/api", 
+  baseURL: "https://onlinestore-928b.onrender.com/api",
 });
 
 api.interceptors.request.use((config) => {

@@ -53,7 +53,7 @@ export default function AccessoriesCardData({ products, favorites, onToggleFavor
                         </Box>
                         <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
                             <Box sx={{ height: 88, overflow: "hidden" }}>
-                                <Typography sx={{ ...h4, mb: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }} onClick={() => navigate(`/coffee/product/${item.id}`)}>
+                                <Typography sx={{ ...h4, mb: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }} onClick={() => navigate(`/accessories/product/${item.id}`)}>
                                     {item.name || "No name"}
                                 </Typography>
                                 <ClampText lines={2} sx={{ ...h7, mb: 1, wordBreak: "break-word", overflowWrap: "anywhere" }}>

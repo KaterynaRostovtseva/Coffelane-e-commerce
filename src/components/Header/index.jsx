@@ -12,6 +12,9 @@ import CartModal from "../CartModal/index.jsx";
 import { useSelector } from "react-redux";
 import { selectCartCount } from "../../store/slice/cartSlice.jsx";
 import SettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+
 
 function Header() {
     const navigate = useNavigate();
@@ -32,7 +35,7 @@ function Header() {
             setIsLoginModalOpen(true);
         }
     };
-    
+
     const handleOpenLoginModal = () => {
         setIsLoginModalOpen(true);
     }
@@ -86,30 +89,28 @@ function Header() {
         }
     }, [searchParams, setSearchParams]);
 
+    const favoriteItems = useSelector(state => state.favorites.items); // массив избранных
+
+    const hasFavorites = favoriteItems && favoriteItems.length > 0;
+
+    const goToFavorites = () => {
+        navigate('/favourite');
+    };
+
     return (
         <Box sx={{ flexGrow: 1 }}>
             <TopLine />
-            
+
             {/* Success/Error Messages */}
             {showSuccessMessage && (
-                <Alert 
-                    severity={messageType}
-                    sx={{ 
-                        position: 'fixed',
-                        top: 20,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        zIndex: 9999,
-                        minWidth: '300px'
-                    }}
-                    onClose={() => setShowSuccessMessage(false)}
-                >
-                    {messageType === 'success' 
-                        ? 'Password reset successfully! You can now log in.' 
+                <Alert severity={messageType}
+                    sx={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, minWidth: '300px' }} onClose={() => setShowSuccessMessage(false)} >
+                    {messageType === 'success'
+                        ? 'Password reset successfully! You can now log in.'
                         : 'Invalid recovery link. Please try again or contact support.'}
                 </Alert>
             )}
-            
+
             <Grid container alignItems="center" justifyContent="space-between" sx={{ height: '83px', backgroundColor: '#EAD9C9', padding: '0 48px' }}>
                 <Link to="/">
                     <Box component="img" src={logo} alt="Coffee Lane logo"
@@ -124,14 +125,23 @@ function Header() {
                             sx={{ width: '24px', height: '24px', cursor: 'pointer', }} />
                     </Button>
 
+                    <Button onClick={goToFavorites} disableRipple sx={{ marginLeft: '32px', cursor: 'pointer', minWidth: 0, padding: 0, backgroundColor: "transparent", border: "none",}}>
+                        {hasFavorites ? (
+                            <FavoriteIcon sx={{ color: 'red', fontSize: 24 }} />
+                        ) : (
+                            <FavoriteBorderOutlinedIcon sx={{ color: '#3E3027', fontSize: 24 }} />
+                        )}
+                    </Button>
+
                     <Button onClick={handleAccountClick} disableRipple sx={{ minWidth: 0, padding: 0, backgroundColor: "transparent", border: "none", "&:hover, &:focus, &:active": { backgroundColor: "#EAD9C9", } }}>
                         <Box component="img" src={account} alt="User account"
-                            sx={{ marginLeft: '48px', width: '24px', height: '24px', cursor: 'pointer', }} />
+                            sx={{ marginLeft: '32px', width: '24px', height: '24px', cursor: 'pointer', }} />
                     </Button>
+
                     {!orderCompleted && (
                         <Button onClick={handleOpenCartModal} disableRipple sx={{ minWidth: 0, padding: 0, backgroundColor: "transparent", border: "none", "&:hover, &:focus, &:active": { backgroundColor: "#EAD9C9", }, position: "relative", }}>
                             <Box component="img" src={ShoppingCart} alt="Shopping cart"
-                                sx={{ marginLeft: '48px', width: '24px', height: '24px', cursor: 'pointer', }} />
+                                sx={{ marginLeft: '32px', width: '24px', height: '24px', cursor: 'pointer', }} />
                             {cartCount > 0 && (
                                 <Box sx={{ position: "absolute", top: -14, right: -9, bgcolor: "#16675C", color: "#fff", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: "500", }} >
                                     {cartCount}
@@ -153,13 +163,13 @@ function Header() {
                 </Box>
             </Grid>
 
-            <LoginModal 
-                open={isLoginModalOpen} 
+            <LoginModal
+                open={isLoginModalOpen}
                 onClose={handleCloseLoginModal}
                 initialScreen={modalParams.initialScreen}
                 recoveryToken={modalParams.recoveryToken}
             />
-        
+
             <CartModal open={isCartModalOpen} onClose={handleCloseCartModal} />
         </Box>
 
