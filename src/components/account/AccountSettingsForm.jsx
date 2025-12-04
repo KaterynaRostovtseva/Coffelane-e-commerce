@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { inputStyles, helperTextRed } from "../../styles/inputStyles.jsx";
 import { btnStyles } from "../../styles/btnStyles.jsx";
 import { changePassword, clearChangePasswordSuccess } from "../../store/slice/authSlice.jsx";
-import { validatePasswords } from "../../shared/utils/validatePasswords.jsx";
+import { validatePasswords } from "../../components/utils/validation/validatePasswords.jsx";
 
 export default function AccountSettingsForm() {
   const dispatch = useDispatch();

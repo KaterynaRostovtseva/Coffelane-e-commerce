@@ -7,8 +7,9 @@ import Search from '../../assets/icons/search-icon.svg';
 import TopLine from '../TopLine/index.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../Navbar/index.jsx';
-import LoginModal from "../LoginModal/index.jsx";
-import CartModal from "../CartModal/index.jsx";
+// import LoginModal from "../LoginModal/index.jsx";
+import LoginModal from "../LoginModal.jsx";
+
 import { useSelector } from "react-redux";
 import { selectCartCount } from "../../store/slice/cartSlice.jsx";
 import SettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -20,21 +21,32 @@ function Header() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-    const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+    // const [isCartModalOpen, setIsCartModalOpen] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [messageType, setMessageType] = useState('');
     const [modalParams, setModalParams] = useState({ initialScreen: null, recoveryToken: null });
     const cartCount = useSelector(selectCartCount);
     const orderCompleted = useSelector((state) => state.cart.orderCompleted);
-    const user = useSelector(state => state.auth.user);
+    // const user = useSelector(state => state.auth.user);
+    const user = useSelector((state) => state.auth.user);
 
-    const handleAccountClick = () => {
-        if (user) {
-            navigate('/account/personal-info');
-        } else {
-            setIsLoginModalOpen(true);
-        }
-    };
+    
+console.log("Header - user:", useSelector((state) => state.auth.user));
+//  return <div>{user ? `Hi, ${user.first_name}` : "Not logged in"}</div>;
+
+useEffect(() => {
+    console.log("Header updated:", { user });
+}, [user])
+
+ 
+const handleAccountClick = () => {
+
+  if (user) {
+    navigate('/account/personal-info');
+  } else {
+    setIsLoginModalOpen(true);
+  }
+};
 
     const handleOpenLoginModal = () => {
         setIsLoginModalOpen(true);
@@ -45,15 +57,15 @@ function Header() {
         setModalParams({ initialScreen: null, recoveryToken: null });
     };
 
-    const handleOpenCartModal = () => {
-        setIsCartModalOpen(true);
-    }
-    useEffect(() => {
-    }, [isCartModalOpen]);
+    // const handleOpenCartModal = () => {
+    //     setIsCartModalOpen(true);
+    // }
+    // useEffect(() => {
+    // }, [isCartModalOpen]);
 
-    const handleCloseCartModal = () => {
-        setIsCartModalOpen(false);
-    };
+    // const handleCloseCartModal = () => {
+    //     setIsCartModalOpen(false);
+    // };
 
     useEffect(() => {
         const loginParam = searchParams.get('login');
@@ -139,7 +151,7 @@ function Header() {
                     </Button>
 
                     {!orderCompleted && (
-                        <Button onClick={handleOpenCartModal} disableRipple sx={{ minWidth: 0, padding: 0, backgroundColor: "transparent", border: "none", "&:hover, &:focus, &:active": { backgroundColor: "#EAD9C9", }, position: "relative", }}>
+                        <Button  disableRipple sx={{ minWidth: 0, padding: 0, backgroundColor: "transparent", border: "none", "&:hover, &:focus, &:active": { backgroundColor: "#EAD9C9", }, position: "relative", }}>
                             <Box component="img" src={ShoppingCart} alt="Shopping cart"
                                 sx={{ marginLeft: '32px', width: '24px', height: '24px', cursor: 'pointer', }} />
                             {cartCount > 0 && (
@@ -165,12 +177,12 @@ function Header() {
 
             <LoginModal
                 open={isLoginModalOpen}
-                onClose={handleCloseLoginModal}
-                initialScreen={modalParams.initialScreen}
-                recoveryToken={modalParams.recoveryToken}
+                handleClose={handleCloseLoginModal}
+                // initialScreen={modalParams.initialScreen}
+                // recoveryToken={modalParams.recoveryToken}
             />
 
-            <CartModal open={isCartModalOpen} onClose={handleCloseCartModal} />
+            {/* <CartModal open={isCartModalOpen} onClose={handleCloseCartModal} /> */}
         </Box>
 
     );

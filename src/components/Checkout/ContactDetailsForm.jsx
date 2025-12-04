@@ -1,7 +1,7 @@
 import { Box, TextField, Typography, Button, Divider } from "@mui/material";
 import { h4, h6 } from '../../styles/typographyStyles';
 import { inputStyles, helperTextRed } from '../../styles/inputStyles';
-import { formatPhone,  formatZip } from "../../shared/utils/formatters.jsx";
+import { formatPhone,  formatZip } from "../../components/utils/formatters.jsx";
 
 
 export default function ContactDetailsForm({

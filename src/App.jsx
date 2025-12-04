@@ -1,4 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { fetchProfile } from './store/slice/authSlice.jsx';
 import HomePage from './pages/HomePage.jsx'
 import NotFoundPage from './pages/NotFoundPage';
 import Header from './components/Header/index.jsx';
@@ -22,15 +26,18 @@ import ProductEdit from './admin/Pages/ProductEdit.jsx';
 import Orders from './admin/Pages/Orders.jsx';
 import MyAccount from './admin/Pages/MyAccount.jsx';
 
-// Component to handle recovery password redirect
-const RecoveryRedirect = () => {
-  const { token } = useParams();
-  // Properly encode the token for URL parameters
-  const encodedToken = encodeURIComponent(token);
-  return <Navigate to={`/?login=true&token=${encodedToken}&screen=reset-password`} replace />;
-};
+
 
 function App() {
+  const dispatch = useDispatch();
+  const { user, token, loading } = useSelector(state => state.auth);
+
+  useEffect(() => {
+    if (token && !user && !loading) {
+      dispatch(fetchProfile());
+    }
+  }, [dispatch, token, user, loading]);
+
 
   return (
     <BrowserRouter>
@@ -55,7 +62,7 @@ function App() {
           <Route path="/favourite" element={<FavouritePage />} />
           <Route path="/account" element={<Navigate to="/account/personal-info" replace />} />
           <Route path="/account/:tab" element={<AccountPage />} />
-          <Route path="/recovery_password/:token" element={<RecoveryRedirect />} />
+          {/* <Route path="/recovery_password/:token" element={<RecoveryRedirect />} /> */}
 
           <Route path="*" element={<NotFoundPage />} />
         </Route>

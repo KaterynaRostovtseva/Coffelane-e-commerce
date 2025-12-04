@@ -3,7 +3,7 @@ import {Box, TextField, Typography, Checkbox, FormControlLabel, IconButton, Inpu
 import { Visibility, VisibilityOff } from "@mui/icons-material"; 
 import { h4, h5, h6 } from "../../styles/typographyStyles";
 import { inputStyles, helperTextRed, checkboxStyles } from "../../styles/inputStyles";
-import { formatExpiry, formatCardNumber } from "../../shared/utils/formatters.jsx";
+import { formatExpiry, formatCardNumber } from "../../components/utils/formatters.jsx";
 
 export default function PaymentForm({ step, cardName, setCardName, cardNumber, setCardNumber, expiry, setExpiry, cvv, setCvv, errors, icon3}) {
   const [saveCard, setSaveCard] = useState(false);

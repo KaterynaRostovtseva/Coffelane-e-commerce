@@ -4,11 +4,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { selectCartItems, addToCart } from "../../store/slice/cartSlice.jsx";
 import { btnStyles, btnBorderStyles } from "../../styles/btnStyles.jsx";
-import CartModal from "../CartModal/index.jsx";
+// import CartModal from "../CartModal/index.jsx";
 
 
 
-export default function AddToCartAccessoriesButtons({ product, quantity }) {
+export default function AddToCartButtons({ product, quantity }) {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const cartEntries = useSelector(selectCartItems);
@@ -52,7 +52,7 @@ export default function AddToCartAccessoriesButtons({ product, quantity }) {
                 </Button>
             </Box>
 
-            <CartModal open={isCartOpen} onClose={() => setIsCartOpen(false)} />
+            {/* <CartModal open={isCartOpen} onClose={() => setIsCartOpen(false)} /> */}
         </>
     );
 }

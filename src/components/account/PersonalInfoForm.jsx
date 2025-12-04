@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Grid, TextField, Button, Typography, Box, Alert } from "@mui/material";
 import { inputStyles, helperTextRed } from "../../styles/inputStyles.jsx";
 import { btnStyles } from "../../styles/btnStyles.jsx";
-import { formatPhone } from "../../shared/utils/formatters.jsx";
-import { validateProfile } from "../../shared/utils/validateProfile.jsx";
+import { formatPhone } from "../../components/utils/formatters.jsx";
+import { validateProfile } from "../../components/utils/validation/validateProfile.jsx";
 
-export default function PersonalInfoForm() {
+export default function PersonalInfoForm({ user }) {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -23,7 +23,23 @@ export default function PersonalInfoForm() {
   const [leftSuccess, setLeftSuccess] = useState("");
   const [rightSuccess, setRightSuccess] = useState("");
 
-  const handleChange = (field, column = "left") => (e) => {
+useEffect(() => {
+    if (user) {
+      setFormData({
+        fullName: `${user.first_name || ""} ${user.last_name || ""}`,
+        email: user.email || "",
+        phone: user.phone_number || "",
+        country: user.country || "",
+        city: user.region || "",
+        state: user.state || "",
+        streetName: user.street_name || "",
+        houseNumber: user.zip_code || "",
+        aptNumber: user.apartment_number || "",
+      });
+    }
+  }, [user]);
+
+const handleChange = (field, column = "left") => (e) => {
     let value = e.target.value;
     if (field === "phone") value = formatPhone(value);
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -41,8 +57,6 @@ export default function PersonalInfoForm() {
     setLeftErrors(errors);
 
     if (Object.keys(errors).length === 0) {
-      const [firstName, ...lastNameParts] = (formData.fullName || "").trim().split(" ");
-      const lastName = lastNameParts.join(" ");
       setLeftSuccess("Personal info saved!");
       setTimeout(() => setLeftSuccess(""), 3000);
     }
@@ -53,24 +67,16 @@ export default function PersonalInfoForm() {
     setRightErrors(errors);
 
     if (Object.keys(errors).length === 0) {
-      const profileData = {
-        country: formData.country,
-        state: formData.state,
-        city: formData.city,
-        street: formData.streetName,
-        houseNumber: formData.houseNumber,
-        aptNumber: formData.aptNumber,
-      };
       setRightSuccess("Address saved!");
       setTimeout(() => setRightSuccess(""), 3000);
     }
   };
 
-
   return (
     <Box sx={{ px: 2, py: 0 }}>
       <Grid container spacing={4}>
         <Grid size={6}>
+          {/* Левые поля */}
           <Typography>Full Name</Typography>
           <TextField
             fullWidth
@@ -114,14 +120,11 @@ export default function PersonalInfoForm() {
             Save changes
           </Button>
 
-          {leftSuccess && (
-            <Alert severity="success" sx={{ mt: 2 }}>
-              {leftSuccess}
-            </Alert>
-          )}
+          {leftSuccess && <Alert severity="success" sx={{ mt: 2 }}>{leftSuccess}</Alert>}
         </Grid>
 
         <Grid size={6}>
+          {/* Правые поля */}
           <Typography>Country</Typography>
           <TextField
             fullWidth
@@ -198,14 +201,9 @@ export default function PersonalInfoForm() {
             Save changes
           </Button>
 
-          {rightSuccess && (
-            <Alert severity="success" sx={{ mt: 2 }}>
-              {rightSuccess}
-            </Alert>
-          )}
+          {rightSuccess && <Alert severity="success" sx={{ mt: 2 }}>{rightSuccess}</Alert>}
         </Grid>
       </Grid>
     </Box>
   );
 }
-

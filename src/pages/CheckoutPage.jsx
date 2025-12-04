@@ -6,16 +6,16 @@ import ContactDetailsForm from "../components/Checkout/ContactDetailsForm.jsx";
 import PaymentForm from "../components/Checkout/PaymentForm.jsx";
 import CartSummary from "../components/Checkout/CartSummary.jsx";
 import { selectCartItems, selectCartTotal, addToCart, decrementQuantity, removeFromCart } from "../store/slice/cartSlice.jsx";
-import { validateContact } from "../shared/utils/validateContact.jsx";
+import { validateContact } from "../components/utils/validation/validateContact.jsx";
 import icon1 from "../assets/icons/1icon.svg";
 import icon2 from "../assets/icons/2icon.svg";
 import icon3 from "../assets/icons/3icon.svg";
 import icondelete from "../assets/icons/delete-icon.svg";
-import LoginModal from "../components/LoginModal/index.jsx";
+import LoginModal from "../components/LoginModal.jsx";
  import { titlePage, h6, h5 } from "../styles/typographyStyles";
 import { inputStyles, checkboxStyles, helperTextRed, } from "../styles/inputStyles.jsx";
 import { btnStyles, btnCart } from "../styles/btnStyles.jsx";
-import { formatPhone, formatCardNumber, formatExpiry } from "../shared/utils/formatters.jsx";
+import { formatPhone, formatCardNumber, formatExpiry } from "../components/utils/formatters.jsx";
 import { clearCart } from '../store/slice/cartSlice.jsx';
 
 
@@ -44,14 +44,9 @@ export default function CheckoutPage() {
     const [agreed, setAgreed] = useState(false);
 
     const [discount, setDiscount] = useState("");
-    const [discountAmount, setDiscountAmount] = useState(0); // No default discount - weekly special already applied
+    const [discountAmount, setDiscountAmount] = useState(0);
     const [errors, setErrors] = useState({});
 
-    // Discount codes configuration
-    // SALE10 = 10% discount (0.1 = 10%)
-    // SUMMER15 = 15% discount (0.15 = 15%)
-    // Users can enter these codes in the discount field to apply additional discounts
-    // Note: Weekly special items already have 15% discount applied in CoffeeBanner
     const discounts = { SALE10: 0.1, SUMMER15: 0.15 };
 
     const handleContinue = () => {
@@ -85,7 +80,7 @@ export default function CheckoutPage() {
         
         const orderId = Math.floor(Math.random() * 100000);
         navigate("/order_successful", {
-            state: { orderNumber: orderId, email, firstName, lastName, total: Math.max(0, total - discountAmount).toFixed(2) },
+            state: { orderNumber: orderId, email, firstName, lastName, total: (total - discountAmount).toFixed(2) },
         });
     };
 
@@ -98,17 +93,9 @@ export default function CheckoutPage() {
 
     const handleRemove = (key) => dispatch(removeFromCart(key));
 
-    // Handle discount code application
-    // Conditions:
-    // 1. User must enter a valid code (SALE10 or SUMMER15)
-    // 2. Code is case-insensitive (converted to uppercase)
-    // 3. If invalid code, percent = 0 (no discount applied)
-    // 4. Discount is calculated as percentage of current total
-    // 5. Only applies additional discount on top of existing prices
     const handleApplyDiscount = () => {
         const percent = discounts[discount.toUpperCase()] || 0;
-        const additionalDiscount = total * percent;
-        setDiscountAmount(additionalDiscount); // Only apply promo code discount
+        setDiscountAmount(total * percent);
     };
 
     return (
@@ -162,8 +149,8 @@ export default function CheckoutPage() {
                             </Button>
                         </Box>
                         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}><Typography sx={{ ...h5 }}>Subtotal:</Typography><Typography sx={{ ...h5 }}>{total.toFixed(2)}$</Typography></Box>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}><Typography sx={{ ...h5 }}>Discount:</Typography><Typography sx={{ ...h5 }}>{discountAmount === 0 ? '0$' : `${Math.min(discountAmount, total).toFixed(2)}$`}</Typography></Box>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}><Typography sx={{ ...h5 }}>Total:</Typography><Typography sx={{ ...h5 }}>{Math.max(0, total - discountAmount).toFixed(2)}$</Typography></Box>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}><Typography sx={{ ...h5 }}>Discount:</Typography><Typography sx={{ ...h5 }}>-{discountAmount.toFixed(2)}$</Typography></Box>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}><Typography sx={{ ...h5 }}>Total:</Typography><Typography sx={{ ...h5 }}>{(total - discountAmount).toFixed(2)}$</Typography></Box>
 
                         <Divider sx={{ my: 3, borderColor: "#3E3027" }} />
                         <FormControlLabel control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />} label="I agree to the Privacy Policy and Terms of Use." sx={{ ...h6, ...checkboxStyles }} />

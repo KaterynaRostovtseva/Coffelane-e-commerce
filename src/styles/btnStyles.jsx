@@ -107,3 +107,10 @@ export const btnAdminCheck = {
   }
 }
 
+export const googleButton = {
+  height: "48px",
+  borderRadius: "12px",
+  textTransform: "none",
+  fontSize: "16px",
+  borderColor: "#C4C4C4",
+};

@@ -1,7 +1,7 @@
 import { Box, Paper, List, ListItem, ListItemText, ListItemIcon, ListItemButton } from '@mui/material';
 import { Outlet, NavLink, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../store/slice/authSlice';
+import { logoutUser } from '../../store/slice/authSlice';
 import logo from '../../assets/images/header/logo.svg';
 import dashboard from '../../assets/admin/dashboard.svg'
 import products from '../../assets/admin/products.svg';
@@ -20,7 +20,7 @@ export default function AdminLayout() {
   // }
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(logoutUser());
   };
 
   const user = {

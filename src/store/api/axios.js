@@ -1,27 +1,23 @@
-// import axios from 'axios';
-
-// const api = axios.create({
-//   baseURL: 'https://onlinestore-928b.onrender.com/api', 
-//   headers: {
-//     'Content-Type': 'application/json',
-//   },
-// });
-
-
-// export default api;
-
-import axios from "axios";
+import axios from 'axios';
 
 const api = axios.create({
-  baseURL: "https://onlinestore-928b.onrender.com/api",
+  baseURL: 'https://onlinestore-928b.onrender.com/api', 
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Функция для запроса с access токеном
+export const apiWithAuth = () => {
+  const access = localStorage.getItem("access");
+  return axios.create({
+    baseURL: "https://onlinestore-928b.onrender.com/api",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: access ? `Bearer ${access}` : "",
+    },
+  });
+};
+
 
 export default api;
