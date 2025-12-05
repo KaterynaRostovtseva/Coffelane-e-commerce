@@ -11,7 +11,7 @@ import icon1 from "../assets/icons/1icon.svg";
 import icon2 from "../assets/icons/2icon.svg";
 import icon3 from "../assets/icons/3icon.svg";
 import icondelete from "../assets/icons/delete-icon.svg";
-import LoginModal from "../components/LoginModal.jsx";
+import LoginModal from "../components/Modal/LoginModal.jsx";
  import { titlePage, h6, h5 } from "../styles/typographyStyles";
 import { inputStyles, checkboxStyles, helperTextRed, } from "../styles/inputStyles.jsx";
 import { btnStyles, btnCart } from "../styles/btnStyles.jsx";

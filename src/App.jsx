@@ -25,7 +25,7 @@ import ProductAdd from './admin/Pages/ProductAdd.jsx';
 import ProductEdit from './admin/Pages/ProductEdit.jsx';
 import Orders from './admin/Pages/Orders.jsx';
 import MyAccount from './admin/Pages/MyAccount.jsx';
-
+import LoginModalWrapper from './components/Modal/LoginModalWrapper.jsx';
 
 
 function App() {
@@ -62,7 +62,8 @@ function App() {
           <Route path="/favourite" element={<FavouritePage />} />
           <Route path="/account" element={<Navigate to="/account/personal-info" replace />} />
           <Route path="/account/:tab" element={<AccountPage />} />
-          {/* <Route path="/recovery_password/:token" element={<RecoveryRedirect />} /> */}
+          <Route path="recovery_password/:token" element={<LoginModalWrapper />} />
+
 
           <Route path="*" element={<NotFoundPage />} />
         </Route>

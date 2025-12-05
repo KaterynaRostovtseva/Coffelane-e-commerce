@@ -1,7 +1,6 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-
 import productsReducer from './slice/productsSlice';
 import cartReducer from './slice/cartSlice';
 import profileReducer from "./slice/profileSlice";
@@ -10,31 +9,29 @@ import ordersReducer from './slice/ordersSlice';
 import accessoriesReducer from './slice/accessoriesSlice';
 import favoritesReducer from "./slice/favoritesSlice";
 
-// === persist configs only for selected slices ===
 
 const authPersistConfig = {
-  key: 'auth',
-  storage,
-  whitelist: ['user', 'token', 'profile'], // сохраняем нужные поля
+    key: 'auth',
+    storage,
+    whitelist: ['user', 'token', 'profile'],
 };
 const cartPersistConfig = { key: 'cart', storage };
 const productsPersistConfig = { key: 'products', storage };
 
-// === root reducer ===
 const rootReducer = combineReducers({
-  auth: persistReducer(authPersistConfig, authReducer), 
-  profile: profileReducer,
-  orders: ordersReducer,
-  accessories: accessoriesReducer,
-  favorites: favoritesReducer,
-  cart: persistReducer(cartPersistConfig, cartReducer),
-  products: persistReducer(productsPersistConfig, productsReducer),
+    auth: persistReducer(authPersistConfig, authReducer),
+    profile: profileReducer,
+    orders: ordersReducer,
+    accessories: accessoriesReducer,
+    favorites: favoritesReducer,
+    cart: persistReducer(cartPersistConfig, cartReducer),
+    products: persistReducer(productsPersistConfig, productsReducer),
 });
 
 export const store = configureStore({
-  reducer: rootReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({ serializableCheck: false }),
+    reducer: rootReducer,
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({ serializableCheck: false }),
 });
 
 export const persistor = persistStore(store);

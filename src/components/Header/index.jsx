@@ -7,8 +7,7 @@ import Search from '../../assets/icons/search-icon.svg';
 import TopLine from '../TopLine/index.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../Navbar/index.jsx';
-// import LoginModal from "../LoginModal/index.jsx";
-import LoginModal from "../LoginModal.jsx";
+import LoginModal from "../../components/Modal/LoginModal.jsx";
 
 import { useSelector } from "react-redux";
 import { selectCartCount } from "../../store/slice/cartSlice.jsx";

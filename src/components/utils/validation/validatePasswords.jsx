@@ -1,5 +1,5 @@
 // Password validation function matching backend requirements
-const validatePassword = (password) => {
+export const validatePassword = (password) => {
   const errors = [];
   
   if (!password) {
