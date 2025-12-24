@@ -1,24 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../api/axios';
-// import products from '../../mockData/products.jsx';
-
-// // Thunk для работы с моками
-// export const fetchProducts = createAsyncThunk(
-//   'products/fetchProducts',
-//   async ({ page = 1, limit = 9 } = {}, thunkAPI) => {
-//     const startIndex = (page - 1) * limit;
-//     const endIndex = startIndex + limit;
-//     const currentItems = products.slice(startIndex, endIndex);
-
-//     return {
-//       data: currentItems,
-//       totalItems: products.length,
-//       totalPages: Math.ceil(products.length / limit),
-//       currentPage: page,
-//     };
-//   }
-// );
-
 
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
@@ -52,31 +33,26 @@ export const fetchProducts = createAsyncThunk(
         });
       }
 
-      // Roast filter
       if (filters.roast && filters.roast.length) {
         allProducts = allProducts.filter(p => filters.roast.includes(p.roast));
       }
 
-      // Caffeine filter
       if (filters.caffeine && filters.caffeine.length) {
         allProducts = allProducts.filter(p => filters.caffeine.includes(p.caffeine_type));
       }
 
-      // Bean filter
       if (filters.bean && filters.bean.length) {allProducts = allProducts.filter(p => 
         filters.bean.some(f => p.sort?.toLowerCase().includes(f.toLowerCase())));
       }
 
-      // Grind filter
       if (filters.grind && filters.grind.length) {
-        console.log("Applying grind filter:", filters.grind);
+        // console.log("Applying grind filter:", filters.grind);
         allProducts = allProducts.filter(p => {
           const servingTypes = p.supplies.map(s => s.serving_type);
           return filters.grind.some(g => servingTypes.includes(g));
         });
       }
 
-      // Price filter
       if (filters.priceRange) {
         allProducts = allProducts.filter(p => {
           const price = parseFloat(p.supplies[0]?.price || 0);
@@ -99,7 +75,7 @@ export const fetchProducts = createAsyncThunk(
         currentPage: 1,
       };
     } catch (error) {
-      console.error("Error fetching products:", error);
+      // console.error("Error fetching products:", error);
       return thunkAPI.rejectWithValue(error.response?.data || "Error");
     }
   }
@@ -112,6 +88,56 @@ export const fetchProductById = createAsyncThunk(
     return response.data;
   }
 );
+
+
+export const searchAndFilterProducts = createAsyncThunk(
+  "products/searchAndFilter",
+  async ({ searchQuery = '', filters = {} } = {}, thunkAPI) => {
+    try {
+      const params = new URLSearchParams();
+      params.append("page", 1);
+      params.append("size", 12);
+
+      if (searchQuery) {
+        params.append("q", searchQuery);
+      }
+
+      if (filters.brand && filters.brand !== "Brand") params.append("brand", filters.brand);
+      if (filters.priceRange) {
+        params.append("min_price", filters.priceRange[0]);
+        params.append("max_price", filters.priceRange[1]);
+      }
+      if (filters.sort === "lowToHigh") params.append("ordering", "price");
+      if (filters.sort === "highToLow") params.append("ordering", "-price");
+
+      const endpoint = searchQuery ? '/search/items/' : '/products';
+      const response = await api.get(`${endpoint}?${params.toString()}`);
+      
+      let allProducts = response.data.data;
+
+      if (filters.roast && filters.roast.length) {
+        allProducts = allProducts.filter(p => filters.roast.includes(p.roast));
+      }
+
+      if (filters.caffeine && filters.caffeine.length) {
+        allProducts = allProducts.filter(p => filters.caffeine.includes(p.caffeine_type));
+      }
+
+    
+
+      return {
+        data: allProducts,
+        totalItems: response.data.total_items || allProducts.length,
+        totalPages: response.data.total_pages || 1,
+        currentPage: 1,
+      };
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      return thunkAPI.rejectWithValue(error.response?.data || "Error");
+    }
+  }
+);
+
 
 const productsSlice = createSlice({
   name: "products",

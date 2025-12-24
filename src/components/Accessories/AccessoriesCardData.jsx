@@ -48,7 +48,10 @@ export default function AccessoriesCardData({ products, favorites, onToggleFavor
                                 src={favorites?.[itemId] ? favoriteActive : favorite}
                                 alt="favorite"
                                 sx={{ position: "absolute", top: 16, right: 16, width: 32, height: 32, cursor: "pointer" }}
-                                onClick={() => onToggleFavorite(item)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleFavorite(item);
+                                }}
                             />
                         </Box>
                         <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
@@ -75,7 +78,4 @@ export default function AccessoriesCardData({ products, favorites, onToggleFavor
         </Box>
     );
 }
-
-
-
 
