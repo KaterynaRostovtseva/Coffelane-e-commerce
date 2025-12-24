@@ -17,13 +17,12 @@ import ForgotPasswordModal from "../Modal/ForgotPassword.jsx";
 import ResetPasswordModal from "../Modal/ResetPasswordModal.jsx";
 import IntermediateModal from "../Modal/IntermediateModal.jsx";
 
-
-export default function LoginModal({ open, handleClose, openResetByLink = false, tokenFromLink = null }) {
+export default function LoginModal({ open, handleClose, openResetByLink = false, tokenFromLink = null, returnPath = null }) {
     const dispatch = useDispatch();
     const { loading } = useSelector((state) => state.auth);
     const navigate = useNavigate();
 
-    const [tab, setTab] = useState(1);
+    const [tab, setTab] = useState(0);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [repeatPassword, setRepeatPassword] = useState("");
@@ -43,13 +42,12 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
     const [forgotEmail, setForgotEmail] = useState("");
 
     useEffect(() => {
-        console.log("openResetByLink", openResetByLink, "tokenFromLink", tokenFromLink);
+        // console.log("openResetByLink", openResetByLink, "tokenFromLink", tokenFromLink);
         if (openResetByLink && tokenFromLink) {
             setResetToken(tokenFromLink);
             setResetOpen(true);
         }
     }, [openResetByLink, tokenFromLink]);
-
 
     const openIntermediate = (email) => {
         setIntermediateEmail(email);
@@ -116,6 +114,10 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
             newErrors.repeatPassword = "Passwords do not match";
         }
 
+        if (!agreePrivacy) {
+            newErrors.agreePrivacy = "You must agree to the privacy policy";
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -123,27 +125,35 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
     const handleGoogleLogin = async (credentialResponse) => {
         try {
             const token = credentialResponse?.credential;
-            if (!token) {
-                console.error("No Google credential");
-                return;
-            }
+            if (!token) return;
 
             const decoded = jwtDecode(token);
             const email = decoded?.email;
-
-            if (!email) {
-                console.error("No email in Google token");
-                return;
-            }
+            if (!email) return;
 
             const result = await dispatch(loginWithGoogle({ email, token }));
 
             if (result.meta.requestStatus === "fulfilled") {
-                console.log("✔ Google login successful. Closing modal...");
+                const serverToken = result.payload.access;
+                if (serverToken) {
+                    localStorage.setItem("access", serverToken);
+                } else {
+                    console.error("❌ Server did not return access token!");
+                }
+
                 if (handleClose) handleClose();
-                setSuccessModalOpen(true);
+
+                // Проверяем, является ли пользователь админом
+                const isAdmin = result.payload?.isAdmin || result.payload?.user?.role === 'admin';
+                if (isAdmin) {
+                    // Редиректим админа в админку
+                    navigate('/admin');
+                } else if (returnPath) {
+                    // Если есть путь возврата, переходим туда
+                    navigate(returnPath);
+                }
             } else {
-                console.log("✖ Google login failed:", result.payload);
+                console.error("Google login failed:", result.payload);
             }
         } catch (e) {
             console.error("Google login error", e);
@@ -152,66 +162,135 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
 
     const handleLogin = async () => {
         if (!validateLoginForm()) return;
-        console.log("▶ LOGIN CLICK");
-        console.log("Email:", email);
-        console.log("Password:", password);
+        // console.log("▶ LOGIN CLICK");
+        // console.log("Email:", email);
+        // console.log("Password:", password);
 
         const result = await dispatch(loginUser({ email, password }));
 
-        console.log("LOGIN RESULT:", result);
+        // console.log("LOGIN RESULT:", result);
 
         if (result.meta.requestStatus === "fulfilled") {
-            console.log("✔ Login successful. Closing modal...");
+            // console.log("✔ Login successful. Closing modal...");
             if (handleClose) handleClose();
-            navigate("/account/personal-info");
+
+            // Проверяем, является ли пользователь админом
+            const isAdmin = result.payload?.isAdmin || result.payload?.user?.role === 'admin';
+            if (isAdmin) {
+                // Редиректим админа в админку
+                navigate('/admin');
+            } else if (returnPath) {
+                // Если есть путь возврата, переходим туда
+                navigate(returnPath);
+            }
         } else {
-            console.log("✖ Login failed:", result.payload);
+            // console.log("✖ Login failed:", result.payload);
         }
     };
 
     const handleRegister = async () => {
         if (!validateRegisterForm()) return;
-        console.log("▶ REGISTER CLICK");
-        console.log("Email:", email);
-        console.log("Password:", password);
-        console.log("Repeat:", repeatPassword);
+        // console.log("▶ REGISTER CLICK");
+        // console.log("Email:", email);
+        // console.log("Password:", password);
+        // console.log("Repeat:", repeatPassword);
 
         if (password !== repeatPassword) {
-            console.log("❌ Passwords do not match!");
+            // console.log("❌ Passwords do not match!");
             alert("Passwords do not match!");
             return;
         }
 
-        const registrationData = {
-            email,
-            password,
-            profile: {
-                first_name: firstName || "",
-                last_name: lastName || "",
-                company_name: "",
-                country: "",
-                state: "",
-                region: "",
-                street_name: "",
-                apartment_number: "",
-                zip_code: "",
-                phone_number: "",
-                agree_privacy: agreePrivacy || false,
-                subscribe_newsletter: subscribeNewsletter || false,
-            },
+        // Создаем объект profile только с заполненными полями
+        const profileData = {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            agree_privacy: agreePrivacy,
+            subscribe_newsletter: subscribeNewsletter,
         };
 
-        console.log("DATA SENT TO REGISTER:", registrationData);
+        // Убираем пустые строки из profile
+        Object.keys(profileData).forEach(key => {
+            if (profileData[key] === "" || profileData[key] === null || profileData[key] === undefined) {
+                delete profileData[key];
+            }
+        });
+
+        const registrationData = {
+            email: email.trim(),
+            password,
+            profile: profileData,
+        };
+
+        // console.log("DATA SENT TO REGISTER:", registrationData);
 
         const result = await dispatch(registerUser(registrationData));
 
-        console.log("REGISTER RESULT:", result);
+        // console.log("REGISTER RESULT:", result);
 
         if (result.meta.requestStatus === "fulfilled") {
-            console.log("✔ Registration successful. Closing modal...");
+            // console.log("✔ Registration successful. Closing modal...");
             setSuccessModalOpen(true);
         } else {
             console.log("✖ Registration failed:", result.payload);
+            // Показываем ошибку пользователю
+            const errorPayload = result.payload || {};
+            const newErrors = {};
+            
+            // Функция для форматирования сообщения об ошибке
+            const formatErrorMessage = (message) => {
+                if (!message) return "";
+                let formatted = String(message);
+                // Улучшаем читаемость сообщений об ошибках
+                if (formatted.includes("already exists")) {
+                    formatted = "This email is already registered. Please use a different email or try to log in.";
+                } else if (formatted.includes("Enter your email")) {
+                    formatted = formatted.replace(/user model with this Enter your email/g, "This email");
+                }
+                return formatted;
+            };
+            
+            // Обрабатываем ошибки для каждого поля
+            if (errorPayload.email) {
+                const emailError = Array.isArray(errorPayload.email) 
+                    ? errorPayload.email.join(" ") 
+                    : String(errorPayload.email);
+                newErrors.email = formatErrorMessage(emailError);
+            }
+            
+            if (errorPayload.password) {
+                newErrors.password = Array.isArray(errorPayload.password) 
+                    ? errorPayload.password.join(" ") 
+                    : String(errorPayload.password);
+            }
+            
+            if (errorPayload.profile) {
+                const profileErrors = errorPayload.profile;
+                if (profileErrors.first_name) {
+                    newErrors.firstName = Array.isArray(profileErrors.first_name) 
+                        ? profileErrors.first_name.join(" ") 
+                        : String(profileErrors.first_name);
+                }
+                if (profileErrors.last_name) {
+                    newErrors.lastName = Array.isArray(profileErrors.last_name) 
+                        ? profileErrors.last_name.join(" ") 
+                        : String(profileErrors.last_name);
+                }
+            }
+            
+            // Если есть общее сообщение об ошибке
+            if (errorPayload.message || errorPayload.error) {
+                if (Object.keys(newErrors).length === 0) {
+                    newErrors.submit = errorPayload.message || errorPayload.error || "Registration failed. Please try again.";
+                }
+            }
+            
+            // Если нет конкретных ошибок полей, показываем общее сообщение
+            if (Object.keys(newErrors).length === 0) {
+                newErrors.submit = "Registration failed. Please check your information and try again.";
+            }
+            
+            setErrors(newErrors);
         }
     };
 
@@ -272,6 +351,7 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                                     <FormControlLabel sx={{ ...checkboxStyles }} control={
                                         <Checkbox checked={agreePrivacy} onChange={(e) => setAgreePrivacy(e.target.checked)} />
                                     } label="I agree to the privacy policy" />
+                                    {errors.agreePrivacy && <Typography sx={{ color: "#d32f2f", fontSize: "0.75rem", mt: 0.5 }}>{errors.agreePrivacy}</Typography>}
                                     <FormControlLabel sx={{ ...checkboxStyles }} control={
                                         <Checkbox checked={subscribeNewsletter} onChange={(e) => setSubscribeNewsletter(e.target.checked)} />
                                     } label="Subscribe to newsletter" />
@@ -290,26 +370,11 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                         </Box>
 
                         <Box sx={{ display: "flex", justifyContent: "center" }}>
-                            {/* <GoogleLogin
-                                onSuccess={async (res) => {
-                                    const token = res?.credential;
-                                    if (!token) return;
-                                    const decoded = jwtDecode(token);
-                                    const email = decoded?.email;
-                                    await dispatch(loginWithGoogle({ email, token }));
-                                    handleClose();
-                                    setSuccessModalOpen(true);
-                                }}
-                                onError={() => console.error("Google login failed")}
-                                useOneTap={false}
-                                locale="en"
-                                text="continue_with"
-                            /> */}
-
+                            { }
 
                             <GoogleLogin
                                 onSuccess={handleGoogleLogin}
-                                onError={() => console.error("Google login failed")}
+                                onError={() => { console.error("Google login failed") }}
                                 useOneTap={false}
                                 locale="en"
                                 text="continue_with"
@@ -326,8 +391,8 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                 setResetOpen={setResetOpen}
                 setToken={setResetToken}
                 backToLogin={() => {
-                    setForgotOpen(false); 
-                    setTab(0);          
+                    setForgotOpen(false);
+                    setTab(0);
                 }}
 
             />
@@ -347,8 +412,4 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
         </Dialog>
     );
 }
-
-
-
-
 

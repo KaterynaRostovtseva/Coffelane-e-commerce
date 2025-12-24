@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Grid from '@mui/material/Grid';
 import CoffeeCardData from '../components/Coffe/CoffeeCardData.jsx';
 import { h5 } from "../styles/typographyStyles.jsx";
@@ -7,8 +7,9 @@ import Filter from '../components/Filter/Filter.jsx';
 import PaginationControl from "../components/PaginationControl/PaginationControl.jsx";
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '../store/slice/productsSlice.jsx';
-import { toggleFavoriteItem } from '../store/slice/favoritesSlice.jsx';
+import { toggleFavoriteItem, fetchFavorites } from '../store/slice/favoritesSlice.jsx';
 import { useNavigate, useLocation } from "react-router-dom";
+import LoginModal from '../components/Modal/LoginModal.jsx';
 
 const itemsPerPage = 12;
 
@@ -16,9 +17,18 @@ export default function CatalogCoffeePage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const { items, loading, error } = useSelector((state) => state.products);
   const favorites = useSelector((state) => state.favorites.favorites);
+  const token = useSelector((state) => state.auth.token);
+
+  useEffect(() => {
+    const accessToken = token || localStorage.getItem("access");
+    if (accessToken) {
+      dispatch(fetchFavorites());
+    }
+  }, [dispatch, token]);
 
   const [filters, setFilters] = useState({
     brand: "Brand",
@@ -39,7 +49,7 @@ export default function CatalogCoffeePage() {
   }, [location.search]);
 
   useEffect(() => {
-    dispatch(fetchProducts({ page: 1, limit: 1000, filters })); 
+    dispatch(fetchProducts({ page: 1, limit: 1000, filters }));
   }, [dispatch, filters]);
 
   const handlePageChange = (event, value) => {
@@ -48,8 +58,17 @@ export default function CatalogCoffeePage() {
   };
 
   const handleToggleFavorite = (item) => {
-    dispatch(toggleFavoriteItem(item)); 
+    if (!token) {
+      setLoginOpen(true);
+      return;
+    }
+    const itemType = item.sku ? "product" : "accessory";
+    dispatch(toggleFavoriteItem({ itemType, itemId: item.id, itemData: item }));
   };
+
+  const favoritesMap = useMemo(() => {
+    return favorites.reduce((acc, item) => ({ ...acc, [String(item.id)]: true }), {});
+  }, [favorites]);
 
   const totalPages = Math.ceil(items.length / itemsPerPage);
   const paginatedItems = items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -76,11 +95,10 @@ export default function CatalogCoffeePage() {
             <CircularProgress />
           </Box>
         ) : (
-          <CoffeeCardData
-            products={paginatedItems}
-            favorites={favorites}
-            onToggleFavorite={handleToggleFavorite}
-          />
+          <>
+            <CoffeeCardData products={paginatedItems} favorites={favoritesMap} onToggleFavorite={handleToggleFavorite} />
+            <LoginModal open={loginOpen} handleClose={() => setLoginOpen(false)} />
+          </>
         )}
 
         <PaginationControl page={page} totalPages={totalPages} onPageChange={handlePageChange} />

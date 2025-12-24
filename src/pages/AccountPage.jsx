@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { jwtDecode } from "jwt-decode";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Tabs from "@mui/material/Tabs";
@@ -11,7 +12,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import { useSelector } from "react-redux";
-import { logoutUser } from "../store/slice/authSlice.jsx";
+import { logoutUser, fetchProfile } from "../store/slice/authSlice.jsx";
 import PersonalInfoForm from "../components/account/PersonalInfoForm";
 import AccountSettingsForm from "../components/account/AccountSettingsForm";
 import OrdersHistory from "../components/account/OrdersHistory";
@@ -20,20 +21,58 @@ import { h3, h5 } from "../styles/typographyStyles";
 
 const tabPaths = ["personal-info", "account-settings", "orders-history", "logout"];
 
+// Список админских email (должен совпадать с authSlice и App.jsx)
+const ADMIN_EMAILS = [
+  'admin@coffeelane.com',
+  'admin@example.com',
+];
+
 export default function AccountPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-const auth = useSelector((state) => state.auth);
-console.log("▶ AccountPage. auth:", auth);
-
-const userData = auth.user
-  ? { ...auth.user, email: auth.email } // <- берём email из auth.email
-  : null;
-
-console.log("▶ AccountPage. userData:", userData);
-
+  const auth = useSelector((state) => state.auth);
   
+  // console.log("▶ AccountPage. auth:", auth);
+
+  let userEmail = null;
+
+  if (auth.user?.email) {
+    userEmail = auth.user.email;
+  } else if (auth.profile?.email) {
+    userEmail = auth.profile.email;
+  } else if (auth.email) {
+    userEmail = auth.email;
+  }
+
+  // Проверяем, является ли пользователь админом
+  const isAdminUser = auth.isAdmin || 
+    (userEmail && ADMIN_EMAILS.some(adminEmail => 
+      userEmail.toLowerCase().trim() === adminEmail.toLowerCase().trim()
+    )) ||
+    (auth.user?.role === 'admin' || auth.user?.role === 'Administrator');
+
+  // Если пользователь админ, перенаправляем на админскую страницу аккаунта
+  useEffect(() => {
+    if (isAdminUser) {
+      navigate('/admin/account');
+    }
+  }, [isAdminUser, navigate]);
+
+  // Если пользователь админ, не рендерим обычную страницу аккаунта
+  if (isAdminUser) {
+    return null; // или можно показать загрузку
+  }
+
+  const userData = auth.user
+    ? { ...auth.user, email: userEmail || "" }
+    : null;
+
+// console.log("▶ AccountPage. userData:", userData);
+// console.log("▶ AccountPage. userEmail:", userEmail);
+// console.log("▶ AccountPage. auth.user:", auth.user);
+// console.log("▶ AccountPage. auth.profile:", auth.profile);
+// console.log("▶ AccountPage. auth.email:", auth.email);
 
   const getTabIndexFromPath = () => {
     const path = location.pathname.split("/").pop();
@@ -56,11 +95,21 @@ console.log("▶ AccountPage. userData:", userData);
     setTab(getTabIndexFromPath());
   }, [location.pathname]);
 
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    // Всегда обновляем профиль при монтировании компонента, чтобы получить актуальные данные
+    // Это важно, чтобы разделить данные обычного пользователя и админа
+    if (token && !auth.tokenInvalid && !auth.loading) {
+      // console.log("▶ AccountPage - Fetching profile to ensure we have current user data...");
+      dispatch(fetchProfile());
+    }
+  }, [dispatch]); // Вызываем только при монтировании компонента
+
   const handleLogout = async () => {
-    console.log("▶ LOGOUT CLICK");
+    // console.log("▶ LOGOUT CLICK");
     const result = await dispatch(logoutUser());
      navigate("/");
-    console.log("LOGOUT RESULT:", result);
+    // console.log("LOGOUT RESULT:", result);
   };
 
   return (
