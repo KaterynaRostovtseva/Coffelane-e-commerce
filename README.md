@@ -1,60 +1,90 @@
 
-☕ Coffee Store Web Application
+# ☕ Coffelane — E-commerce Coffee Store
 
-Responsive e-commerce web application for ordering coffee and accessories with a full shopping and checkout flow.
+🔗 **Live Demo:** https://coffelane.vercel.app/  
+📂 **GitHub:** https://github.com/KaterynaRostovtseva/Coffelane-e-commerce
 
-🚀 Features
+Responsive e-commerce web application for ordering coffee and accessories with a complete shopping and checkout flow.
 
-Product catalog with categories, filters, and special offers
+---
 
-Shopping cart with quantity management and total price calculation
+## 🚀 Features
 
-Checkout process with order confirmation
+### ✨ User Features
+- Product catalog with categories and filters  
+- Add to cart with quantity control and automatic total price update  
+- Checkout process with order summary  
+- User authentication (login / registration)  
+- Profile management  
 
-User authentication and profile management
+### 🛠 Admin Features
+- Admin panel for managing products and orders  
+- Upload product images and banners  
+- Edit product details (title, price, category, description)  
 
-Admin panel for managing products, images, and orders
+### 📱 Responsive UI
+- Mobile and desktop-friendly interface  
+- Smooth interaction and accessible navigation  
 
-Image upload for products and banners
+---
 
-Fully responsive design for mobile and desktop devices
+## 🧰 Tech Stack
 
-🛠 Tech Stack
+| Technology | Purpose |
+|--------|--------|
+| React | UI library |
+| Redux Toolkit | State management |
+| Material-UI (MUI) | UI components & layout |
+| REST API | Backend service |
+| Axios | HTTP requests |
+| Vite | Build tooling |
 
-Frontend: React, Redux Toolkit
+---
 
-UI: Material-UI (MUI)
+## 📁 Project Structure
 
-API: REST API, Axios
+src/
+ ├─ api/
+ ├─ components/
+ ├─ pages/
+ ├─ store/
+ ├─ routes/
+ └─ utils/
 
-Build tool: Vite
+---
 
-📸 Screenshots
+## 📸 Screenshots
 
-Add screenshots of main pages here (Home, Product page, Cart, Admin panel)
+![Home Page](./screenshots/home.png)
+![Product Catalog](./screenshots/catalog.png)
+![Cart Page](./screenshots/cart.png)
+![Admin Panel](./screenshots/admin.png)
 
-▶️ Getting Started
-1. Clone the repository
-git clone https://github.com/YourUsername/coffee-store.git
-cd coffee-store
+---
 
-2. Install dependencies
+## ▶️ Getting Started
+
+### 1. Clone the repository
+git clone https://github.com/KaterynaRostovtseva/Coffelane-e-commerce.git
+cd Coffelane-e-commerce
+
+### 2. Install dependencies
 npm install
 
-3. Run the project
+### 3. Run the project
 npm run dev
 
 
 The app will be available at:
 http://localhost:5173
 
-🔐 Authentication
+### 🔐 Authentication
 
 The application supports user registration and login.
 After authentication, users can manage their profile and place orders.
 Admin users have access to product and order management features.
 
-📦 Admin Panel
+### 📦 Admin Panel
 
 Admin panel allows:
 
@@ -64,7 +94,7 @@ Uploading product images and banners
 
 Managing customer orders
 
-📌 Future Improvements
+### 📌 Future Improvements
 
 Online payment integration
 
@@ -74,9 +104,12 @@ Product reviews and ratings
 
 Improved admin analytics dashboard
 
-👩‍💻 Author
+---
 
-Kateryna Rostovtseva
+## 👩‍💻 Author
+
+### Kateryna Rostovtseva
+
 GitHub: https://github.com/KaterynaRostovtseva
 
 LinkedIn: https://www.linkedin.com/in/kateryna-rostovtseva
