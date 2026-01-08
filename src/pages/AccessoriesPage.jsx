@@ -81,13 +81,13 @@ export default function AccessoriesPage() {
   if (error) return <p>{error?.detail || error || "Error"}</p>;
 
   return (
-    <Grid container sx={{ p: 4 }}>
+    <Grid container sx={{ p: { xs: 2, sm: 2, md: 4 } }}>
       <Grid size={12}>
         <Box sx={{ textAlign: "center" }}>
-          <Typography sx={{ color: "#3E3027", fontFamily: "Kefa", fontWeight: 400, fontSize: "40px", mb: 1 }}>
+          <Typography sx={{ color: "#3E3027", fontFamily: "Kefa", fontWeight: 400, fontSize: { xs: "24px", sm: "32px", md: "40px" }, mb: 1 }}>
             Accessories
           </Typography>
-          <Typography sx={{ ...h5, mb: 4 }}>
+          <Typography sx={{ ...h5, mb: { xs: 2, md: 4 }, fontSize: { xs: '14px', md: '16px' } }}>
             Designed for coffee lovers
           </Typography>
         </Box>
@@ -96,7 +96,7 @@ export default function AccessoriesPage() {
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress />
+            <CircularProgress sx={{ color: '#A4795B' }}/>
           </Box>
         ) : (
           <>

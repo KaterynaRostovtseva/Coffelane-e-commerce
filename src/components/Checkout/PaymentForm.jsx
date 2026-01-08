@@ -18,38 +18,39 @@ export default function PaymentForm({ step, cardName, setCardName, cardNumber, s
 
   return (
     <fieldset disabled={step !== 2} style={{ border: "none", padding: 0, margin: 0 }}>
-      <Box sx={{ flex: 1, backgroundColor: "#fff", p: 3, borderRadius: 2, border: step === 2 ? "2px solid yellow" : "2px solid transparent",}}>
+      <Box sx={{ flex: 1, backgroundColor: "#fff", p: { xs: 2, md: 3 }, borderRadius: 2, border: step === 2 ? "2px solid yellow" : "2px solid transparent",}}>
         {step !== 2 && (
-          <Typography sx={{ ...helperTextRed, mb: 2 }}>
+          <Typography sx={{ ...helperTextRed, mb: 2, fontSize: { xs: '11px', md: '12px' } }}>
             Please complete Step 1 (Contact & Delivery) before entering payment details
           </Typography>
         )}
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <Box component="img" src={icon3} alt="three" sx={{ width: 32, height: 32 }} />
-          <Typography sx={{ ...h4 }}>Payment</Typography>
+          <Box component="img" src={icon3} alt="three" sx={{ width: { xs: 24, md: 32 }, height: { xs: 24, md: 32 } }} />
+          <Typography sx={{ ...h4, fontSize: { xs: '18px', md: '20px' } }}>Payment</Typography>
         </Box>
 
-        <Typography sx={{ ...h5 }}>Detail card</Typography>
+        <Typography sx={{ ...h5, fontSize: { xs: '16px', md: '18px' } }}>Detail card</Typography>
 
         <TextField
           id="cardName"
           fullWidth
           margin="normal"
-          placeholder="Name of card holder"
+          label="Name of card holder"
           value={cardName}
           onChange={handleFieldChange(setCardName, "cardName")}
           error={!!errors.cardName}
           helperText={errors.cardName}
           sx={{ ...inputStyles }}
           slotProps={{ formHelperText: { sx: helperTextRed } }}
+          required
         />
 
         <TextField
           id="cardNumber"
           fullWidth
           margin="normal"
-          placeholder="Credit card number"
+          label="Credit card number"
           value={cardNumber}
           onChange={handleFieldChange(setCardNumber, "cardNumber", formatCardNumber)}
           error={!!errors.cardNumber}
@@ -57,12 +58,14 @@ export default function PaymentForm({ step, cardName, setCardName, cardNumber, s
           sx={{ ...inputStyles }}
           slotProps={{ formHelperText: { sx: helperTextRed } }}
           inputProps={{ maxLength: 19 }}
+          required
         />
 
-        <Box display="flex" gap={1} mt={1}>
+        <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} gap={1} mt={1}>
           <TextField
             id="expiry"
-            placeholder="Expire date (MM/YY)"
+            fullWidth
+            label="Expire date (MM/YY)"
             value={expiry}
             onChange={handleFieldChange(setExpiry, "expiry", formatExpiry)}
             error={!!errors.expiry}
@@ -70,11 +73,13 @@ export default function PaymentForm({ step, cardName, setCardName, cardNumber, s
             sx={{ ...inputStyles }}
             inputProps={{ maxLength: 5 }}
             slotProps={{ formHelperText: { sx: helperTextRed } }}
+            required
           />
 
           <TextField
             id="cvv"
-            placeholder="CVV"
+            fullWidth
+            label="CVV"
             type={showCvv ? "text" : "password"}   
             value={cvv}
             onChange={handleFieldChange(setCvv, "cvv", (val) =>
@@ -85,14 +90,16 @@ export default function PaymentForm({ step, cardName, setCardName, cardNumber, s
             sx={{ ...inputStyles }}
             inputProps={{ maxLength: 3 }}
             slotProps={{ formHelperText: { sx: helperTextRed } }}
+            required
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton
                     onClick={() => setShowCvv((prev) => !prev)}
                     edge="end"
+                    size="small"
                   >
-                    {showCvv ? <VisibilityOff /> : <Visibility />}
+                    {showCvv ? <VisibilityOff sx={{ fontSize: { xs: 18, md: 20 } }} /> : <Visibility sx={{ fontSize: { xs: 18, md: 20 } }} />}
                   </IconButton>
                 </InputAdornment>
               ),
@@ -108,7 +115,7 @@ export default function PaymentForm({ step, cardName, setCardName, cardNumber, s
             />
           }
           label="Save card for future use"
-          sx={{ ...h6, ...checkboxStyles, mt: 1 }}
+          sx={{ ...h6, ...checkboxStyles, mt: 1, fontSize: { xs: '12px', md: '14px' } }}
         />
       </Box>
     </fieldset>

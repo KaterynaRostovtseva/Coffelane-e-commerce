@@ -10,6 +10,7 @@ export default function AdminBreadcrumbs() {
     products: 'Products',
     add: 'Add Product',
     edit: 'Edit Product',
+    editOrder: 'Edit Order',
     orders: 'Orders',
     account: 'My Account',
   };
@@ -20,14 +21,18 @@ export default function AdminBreadcrumbs() {
     segments = ['admin', ...segments];
   }
 
-  if (segments.length >= 4 && segments[2] === 'edit') {
+  if (segments.length >= 4 && segments[2] === 'orders' && segments[3] === 'edit') {
+    segments = ['admin', 'orders', 'edit'];
+  }
+
+  if (segments.length >= 4 && segments[2] === 'edit' && segments[1] === 'products') {
     segments = segments.slice(0, 3);
   }
 
   if (segments.length === 1 && segments[0] === 'admin') {
     return (
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Typography sx={{ ...h3 }}>Admin</Typography>
+        <Typography sx={{ ...h3, fontSize: { xs: '14px', md: h3.fontSize } }}>Admin</Typography>
       </Breadcrumbs>
     );
   }
@@ -40,17 +45,11 @@ export default function AdminBreadcrumbs() {
         const label = labels[seg] || seg.charAt(0).toUpperCase() + seg.slice(1);
 
         return isLast ? (
-          <Typography key={to} sx={{ ...h3 }}>
+          <Typography key={to} sx={{ ...h3, fontSize: { xs: '14px', md: h3.fontSize } }}>
             {label}
           </Typography>
         ) : (
-          <Link
-            key={to}
-            component={RouterLink}
-            underline="hover"
-            color="inherit"
-            to={to}
-          >
+          <Link key={to} component={RouterLink} underline="hover" color="inherit" to={to} sx={{ fontSize: { xs: '14px', md: 'inherit' } }}>
             {label}
           </Link>
         );

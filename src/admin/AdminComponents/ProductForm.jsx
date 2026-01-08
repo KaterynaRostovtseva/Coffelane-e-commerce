@@ -11,6 +11,8 @@ export default function ProductForm({
     price, setPrice,
     weight, setWeight,
     description, setDescription,
+    productType = 'product',
+    availableCategories = [], 
 }) {
     return (
         <Box sx={{mt:3}}>
@@ -18,23 +20,46 @@ export default function ProductForm({
             <TextField fullWidth value={productName || ""}  onChange={(e) => setProductName(e.target.value)} sx={{ ...inputStyles, mb: 2 }}/>
 
             <Typography sx={{ ...h7 }} mb={1}>Category</Typography>
-            {category && category !== "Coffee" && category !== "Tea" ? (
+            {category && category !== "custom" && availableCategories && !availableCategories.includes(category) ? (
                 <TextField 
                     fullWidth 
                     value={category} 
                     onChange={(e) => setCategory(e.target.value)} 
                     sx={{ ...inputStyles, mb: 2 }}
+                    placeholder="Enter category"
+                />
+            ) : category === "custom" ? (
+                <TextField 
+                    fullWidth 
+                    value="" 
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setCategory(value || "custom");
+                    }} 
+                    sx={{ ...inputStyles, mb: 2 }}
+                    placeholder="Enter new category"
+                    autoFocus
                 />
             ) : (
                 <FormControl fullWidth sx={{ ...h6, ...inputDropdown, ...inputStyles, mb: 2 }}>
                     <Select 
                         value={category || ""} 
-                        onChange={(e) => setCategory(e.target.value)} 
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "custom") {
+                                setCategory("custom");
+                            } else {
+                                setCategory(value);
+                            }
+                        }} 
                         MenuProps={selectMenuProps}
                         displayEmpty
                     >
-                        <MenuItem value="Coffee">Coffee</MenuItem>
-                        <MenuItem value="Tea">Tea</MenuItem>
+                        <MenuItem value="">Select category</MenuItem>
+                        {availableCategories && availableCategories.length > 0 && availableCategories.map((cat) => (
+                            <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                        ))}
+                        <MenuItem value="custom">+ Add new category</MenuItem>
                     </Select>
                 </FormControl>
             )}
@@ -45,8 +70,12 @@ export default function ProductForm({
             <Typography sx={{ ...h7 }} mb={1}>Price</Typography>
             <TextField fullWidth value={price || ""} onChange={(e) => setPrice(e.target.value)} sx={{ ...inputStyles, mb: 2 }}/>
 
-            <Typography sx={{ ...h7 }} mb={1}>Total weight</Typography>
-            <WeightSelectorAdmin weight={weight} setWeight={setWeight}/>
+            {productType !== 'accessory' && (
+                <>
+                    <Typography sx={{ ...h7 }} mb={1}>Total weight</Typography>
+                    <WeightSelectorAdmin weight={weight} setWeight={setWeight}/>
+                </>
+            )}
 
             <Typography sx={{ ...h7, mt: 2 }} mb={1}>Description</Typography>
             <TextField multiline  minRows={4} fullWidth

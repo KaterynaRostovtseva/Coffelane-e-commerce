@@ -1,4 +1,4 @@
-import { IconButton, Menu, MenuItem, TableCell, Divider } from '@mui/material';
+import { IconButton, Menu, MenuItem, TableCell, Divider, Box } from '@mui/material';
 import { ArrowDropDown } from '@mui/icons-material';
 import { useState } from 'react';
 import { h5 } from '../../styles/typographyStyles.jsx';
@@ -16,18 +16,16 @@ export default function CategoryHeader({ categories, selectedCategory, onCategor
   };
 
   return (
-    <TableCell sx={{ ...h5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-      {selectedCategory}
-      <IconButton size="small" onClick={handleClick}>
-        <ArrowDropDown fontSize="small" />
-      </IconButton>
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-      >
+    <>
+      <TableCell sx={{ ...h5, fontSize: { xs: '12px', md: '14px' }, whiteSpace: 'nowrap', verticalAlign: 'middle',}}>
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5,}}>
+          {selectedCategory}
+          <IconButton size="small" onClick={handleClick} sx={{ padding: 0.5, '& .MuiSvgIcon-root': {fontSize: { xs: 18, md: 20 }}}}>
+            <ArrowDropDown />
+          </IconButton>
+        </Box>
+      </TableCell>
+      <Menu anchorEl={anchorEl} open={open} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }}>
         {categories.map((cat, i) => (
           <div key={i}>
             <MenuItem onClick={() => handleSelect(cat)}>
@@ -37,7 +35,7 @@ export default function CategoryHeader({ categories, selectedCategory, onCategor
           </div>
         ))}
       </Menu>
-    </TableCell>
+    </>
   );
 }
 

@@ -1,14 +1,19 @@
-import { Dialog, Box, TextField, Button, Typography, CircularProgress, Alert, InputAdornment, IconButton } from "@mui/material";
+import { Dialog, Box, TextField, Button, Typography, CircularProgress, Alert, InputAdornment, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import { useState } from "react";
 import { btnStyles } from "../../styles/btnStyles.jsx";
 import { h3, h5 } from "../../styles/typographyStyles.jsx";
 import passwordReset from "../../assets/images/sign-up/password-reset.png";
 import { inputStyles } from "../../styles/inputStyles.jsx";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
 import api from "../../store/api/axios.js";
+import { useNavigate } from "react-router-dom";
 import { validatePassword } from "../utils/validation/validatePasswords.jsx";
 
 export default function ResetPasswordModal({ open, handleClose, setSuccessModalOpen, token }) {
+    const navigate = useNavigate();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [password, setPassword] = useState("");
     const [repeatPassword, setRepeatPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -39,26 +44,56 @@ export default function ResetPasswordModal({ open, handleClose, setSuccessModalO
     };
 
     const handleSubmit = async () => {
-        if (!validate()) return;
+    if (!validate()) return;
 
-        setLoading(true);
-        setServerError("");
-        try {
-            await api.post(`/auth/recovery_password/${token}`, { password });
-            handleClose(); 
-            setSuccessModalOpen(true); 
-        } catch (error) {
-            // console.error("Error resetting password:", error);
-            setServerError(error.response?.data?.message || "Server error. Try again later.");
-        } finally {
-            setLoading(false);
+    setLoading(true);
+    setServerError("");
+    try {
+        const cleanToken = token?.replace(/^"+|"+$/g, "");
+        const response = await api.post(`/auth/recovery_password/${cleanToken}`, { 
+            password: password 
+        });
+
+        console.log("Password changed successfully:", response.data);
+        handleClose(); 
+        setErrors({});
+        navigate("/", { replace: true });
+        setSuccessModalOpen(true); 
+    } catch (error) {
+        console.error("Full error object:", error);
+        const serverData = error.response?.data;
+        let message = "Server error. Try again later.";
+
+        if (serverData) {
+            message = serverData.password ? `Password: ${serverData.password}` : 
+                      serverData.detail ? serverData.detail : 
+                      JSON.stringify(serverData);
         }
-    };
+
+        setServerError(message);
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <Dialog open={open} onClose={handleClose}
             PaperProps={{ sx: { position: "fixed", top: 0, right: 0, width: { xs: "100%", sm: 450 }, borderRadius: { xs: 0, sm: "40px 0 0 0" }, backgroundColor: "#fff", m: 0, height: "100vh", maxHeight: "100vh" } }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 4, p: 3 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 4, p: 3, position: "relative" }}>
+                {isMobile && (
+                    <IconButton
+                        onClick={handleClose}
+                        sx={{
+                            position: "absolute",
+                            top: 8,
+                            right: 8,
+                            color: "#3E3027",
+                            zIndex: 1
+                        }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                )}
                 <Box component="img" src={passwordReset} alt="passwordReset" sx={{ margin: '32px 0', width: '100%' }} />
                 <Typography sx={{ ...h3, textAlign: 'center' }}>Reset password</Typography>
                 <Typography sx={{ ...h5, textAlign: 'center' }}>Enter your new password below.</Typography>
@@ -106,7 +141,7 @@ export default function ResetPasswordModal({ open, handleClose, setSuccessModalO
                 />
 
                 <Button sx={{ ...btnStyles, width: "100%", textTransform: "none" }} onClick={handleSubmit} disabled={loading}>
-                    {loading ? <CircularProgress size={24} /> : "Reset Password"}
+                    {loading ? <CircularProgress size={24} color="inherit" /> : "Reset Password"}
                 </Button>
             </Box>
         </Dialog>

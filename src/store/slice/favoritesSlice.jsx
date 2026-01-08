@@ -23,8 +23,8 @@ export const fetchFavorites = createAsyncThunk(
     }
 
     try {
-      const api = apiWithAuth(tokenFromState);
-      const res = await api.get("/favorites");
+      // Используем apiWithAuth напрямую - интерцептор автоматически добавит токен
+      const res = await apiWithAuth.get("/favorites");
       const items = res.data.items || [];
 
       if (items.length === 0) {
@@ -70,16 +70,17 @@ export const fetchFavorites = createAsyncThunk(
         const fetchedItems = [];
         for (const item of needsFetch) {
           try {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 100)); 
             if (item.type === 'product') {
-              const res = await api.get(`/products/${item.id}`);
+              const res = await apiWithAuth.get(`/products/${item.id}`);
               fetchedItems.push({ ...res.data, type: 'product' });
             } else if (item.type === 'accessory') {
-              const res = await api.get(`/accessories/${item.id}`);
+              const res = await apiWithAuth.get(`/accessories/${item.id}`);
               fetchedItems.push({ ...res.data, type: 'accessory' });
             }
           } catch (error) {
             console.warn(`Failed to fetch ${item.type} ${item.id}:`, error);
+
           }
         }
 
@@ -89,11 +90,11 @@ export const fetchFavorites = createAsyncThunk(
 
       return mappedItems;
     } catch (error) {
-
+      // Интерцептор автоматически обработает 401 и попытается обновить токен
+      // Если токен не может быть обновлен, интерцептор отклонит запрос
+      // Здесь просто возвращаем пустой массив или ошибку
       if (error.response?.status === 401) {
-
-        localStorage.removeItem("access");
-
+        // Если после попытки рефреша все еще 401, значит сессия истекла
         return [];
       }
       return rejectWithValue(error.response?.data?.detail || "Error loading favorites");
@@ -125,8 +126,8 @@ export const toggleFavoriteItem = createAsyncThunk(
     }
 
     try {
-      const api = apiWithAuth(tokenFromState);
-      const response = await api.post(`/favorites/${itemType}/${itemId}/toggle/`);
+      // Используем apiWithAuth напрямую - интерцептор автоматически добавит токен
+      const response = await apiWithAuth.post(`/favorites/${itemType}/${itemId}/toggle/`);
       return { success: true, itemType, itemId };
     } catch (error) {
 
@@ -134,16 +135,15 @@ export const toggleFavoriteItem = createAsyncThunk(
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
-          const api = apiWithAuth(tokenFromState);
-          const response = await api.post(`/favorites/${itemType}/${itemId}/toggle/`);
+          const response = await apiWithAuth.post(`/favorites/${itemType}/${itemId}/toggle/`);
 
           return { success: true, itemType, itemId };
         } catch (retryError) {
           return rejectWithValue("Too many requests. Please try again later.");
         }
       } else if (error.response?.status === 401) {
-
-        localStorage.removeItem("access");
+        // Интерцептор уже попытался обновить токен
+        // Если все еще 401, значит сессия истекла
         return rejectWithValue("User not authenticated. Please log in.");
       }
       return rejectWithValue(error.response?.data?.detail || "Error toggling favorite");
@@ -193,8 +193,7 @@ const favoritesSlice = createSlice({
           if (itemData) {
             state.favorites.push({ ...itemData, type: itemType });
           } else {
-
-            console.error("Item not in favorites, no itemData provided, will be added after fetchFavorites");
+            console.log("Item not in favorites, no itemData provided, will be added after fetchFavorites");
           }
         }
       })
@@ -204,14 +203,17 @@ const favoritesSlice = createSlice({
         delete state.toggling[toggleKey];
       })
       .addCase(toggleFavoriteItem.rejected, (state, action) => {
+
         const { itemType, itemId } = action.meta.arg;
         const toggleKey = `${itemType}-${itemId}`;
         delete state.toggling[toggleKey];
         state.error = action.payload;
+
         const existingIndex = state.favorites.findIndex(item =>
           item.id == itemId || String(item.id) === String(itemId)
         );
         if (existingIndex === -1) {
+
         }
       });
   }

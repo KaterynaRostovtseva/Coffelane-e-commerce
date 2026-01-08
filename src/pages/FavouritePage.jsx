@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Grid, Box, Typography, CircularProgress, Card, CardContent, CardMedia, Button, IconButton, Snackbar, Tooltip } from "@mui/material";
+import { 
+  Box, Typography, CircularProgress, Card, CardContent, 
+  CardMedia, Button, IconButton, Snackbar, Tooltip, useMediaQuery, useTheme 
+} from "@mui/material";
 import ShareIcon from "@mui/icons-material/Share";
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { h5, h4, h7 } from "../styles/typographyStyles.jsx";
@@ -13,21 +17,91 @@ import { fetchFavorites, toggleFavoriteItem } from "../store/slice/favoritesSlic
 import { selectCartItems, addToCart } from "../store/slice/cartSlice.jsx";
 import ClampText from "../components/ClampText.jsx";
 import LoginModal from "../components/Modal/LoginModal.jsx";
+import { formatPrice, getPrice, getProductPrice } from "../components/utils/priceUtils.jsx";
+import CoffeeIcon from '@mui/icons-material/Coffee';
+
+// Вспомогательный компонент для изображений с обработкой ошибок (как в CoffeeCardData)
+const FavoriteProductImage = ({ item, isMobile }) => {
+  const [hasError, setHasError] = React.useState(false);
+  
+  // Извлекаем фото из различных полей (как в других компонентах)
+  let imageUrl = null;
+  
+  // Проверяем photos_url
+  if (item.photos_url && Array.isArray(item.photos_url) && item.photos_url.length > 0) {
+    const firstPhoto = item.photos_url[0];
+    imageUrl = firstPhoto?.url || firstPhoto?.photo || (typeof firstPhoto === 'string' ? firstPhoto : null);
+  }
+  
+  // Проверяем product_photos (для продуктов)
+  if (!imageUrl && item.product_photos && Array.isArray(item.product_photos) && item.product_photos.length > 0) {
+    const firstPhoto = item.product_photos[0];
+    if (firstPhoto.photo) {
+      imageUrl = typeof firstPhoto.photo === 'string' ? firstPhoto.photo : (firstPhoto.photo.url || firstPhoto.photo.photo_url);
+    } else {
+      imageUrl = firstPhoto?.url || firstPhoto?.photo || null;
+    }
+  }
+  
+  // Проверяем accessory_photos (для аксессуаров)
+  if (!imageUrl && item.accessory_photos && Array.isArray(item.accessory_photos) && item.accessory_photos.length > 0) {
+    const firstPhoto = item.accessory_photos[0];
+    imageUrl = firstPhoto?.url || firstPhoto?.photo || (typeof firstPhoto === 'string' ? firstPhoto : null);
+  }
+  
+  // Если URL относительный, добавляем базовый URL
+  if (imageUrl && typeof imageUrl === 'string' && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:')) {
+    const baseUrl = 'https://onlinestore-928b.onrender.com';
+    imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
+  }
+
+  if (!imageUrl || hasError) {
+    return (
+      <Box sx={{ 
+        width: "100%", 
+        height: "100%", 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        bgcolor: "#f5f5f5",
+        borderRadius: "12px"
+      }}>
+        <CoffeeIcon sx={{ color: "#ccc", fontSize: 50 }} />
+      </Box>
+    );
+  }
+
+  return (
+    <CardMedia
+      component="img"
+      image={imageUrl}
+      alt={item.name}
+      onError={() => setHasError(true)}
+      sx={{ width: "100%", height: "100%", objectFit: "contain" }}
+    />
+  );
+};
 
 export default function FavouritePage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const { favorites, loading } = useSelector(state => state.favorites);
   const token = useSelector(state => state.auth.token);
   const user = useSelector(state => state.auth.user);
   const cartEntries = useSelector(selectCartItems);
+  const currency = useSelector((state) => state.settings?.selectedCurrency || 'USD');
+  
   const [loginOpen, setLoginOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  
   const hasLoadedRef = useRef(false);
   const modalOpenedRef = useRef(false);
 
- 
+
   useEffect(() => {
     if (!token || !user) {
       if (!token && !modalOpenedRef.current) {
@@ -50,27 +124,9 @@ export default function FavouritePage() {
     }, {});
   }, [favorites]);
 
- const allFavorites = useMemo(() => {
-    if (favorites.length === 0) return [];
-    const shuffled = [...favorites].sort((a, b) => {
-      const keyA = `${a.type || "unknown"}-${a.id}`;
-      const keyB = `${b.type || "unknown"}-${b.id}`;
-
-      let hashA = 0;
-      let hashB = 0;
-
-      for (let i = 0; i < keyA.length; i++) {
-        hashA = ((hashA << 5) - hashA) + keyA.charCodeAt(i);
-        hashA = hashA & hashA;
-      }
-      for (let i = 0; i < keyB.length; i++) {
-        hashB = ((hashB << 5) - hashB) + keyB.charCodeAt(i);
-        hashB = hashB & hashB;
-      }
-      return hashA - hashB;
-    });
-
-    return shuffled;
+  const allFavorites = useMemo(() => {
+    if (!favorites || favorites.length === 0) return [];
+    return [...favorites];
   }, [favorites]);
 
   const handleToggleFavorite = (item) => {
@@ -78,43 +134,46 @@ export default function FavouritePage() {
       setLoginOpen(true);
       return;
     }
-
     const itemType = item.type || (item.sku ? "product" : "accessory");
     dispatch(toggleFavoriteItem({ itemType, itemId: item.id, itemData: item }));
   };
 
   const handleAddToCart = (item) => {
-    if (item.type === "product") {
-      const selectedSupply = item.supplies?.[0] || { id: "default", price: item.price || 0 };
-
-      dispatch(
-        addToCart({
-          product: {
-            ...item,
-            price: Number(selectedSupply.price || item.price || 0),
-            selectedSupplyId: selectedSupply.id,
-          },
-          quantity: 1,
-        })
-      );
-    } else {
-      dispatch(
-        addToCart({
-          product: { ...item, price: Number(item.price) || 0 },
-          quantity: 1,
-        })
-      );
+    if (!token) {
+      setLoginOpen(true);
+      return;
     }
+    
+    const isProduct = item.type === "product";
+    const supply = isProduct ? item.supplies?.[0] : null;
+    
+    // Проверка наличия товара
+    const isOutOfStock = isProduct 
+      ? (!supply || Number(supply.quantity || 0) <= 0)
+      : ((item.quantity !== undefined ? Number(item.quantity) : 0) <= 0);
+    
+    if (isOutOfStock) {
+      return; // Не добавляем товар, если его нет в наличии
+    }
+    
+    dispatch(addToCart({
+      product: {
+        ...item,
+        price: isProduct ? Number(supply?.price || 0) : Number(item.price || 0),
+        selectedSupplyId: supply?.id || null,
+      },
+      quantity: 1,
+    }));
   };
 
   const handleShare = async () => {
     const shareUrl = window.location.origin + "/favourite";
-
     try {
-      await navigator.share({
-        title: "My Favorite Products",
-        url: shareUrl,
-      });
+      if (navigator.share) {
+        await navigator.share({ title: "My Favorite Products", url: shareUrl });
+      } else {
+        throw new Error("Share not supported");
+      }
     } catch {
       await navigator.clipboard.writeText(shareUrl);
       setSnackbarMessage("Link copied to clipboard!");
@@ -124,116 +183,158 @@ export default function FavouritePage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
-        <CircularProgress />
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+        <CircularProgress   sx={{ color: '#A4795B' }}/>
       </Box>
     );
   }
 
-    return (
-    <Grid container sx={{ p: 4 }}>
-      <Grid size={12}>
-        {user && (
-          <Box sx={{ textAlign: "center" }}>
-            <Typography sx={{ color: "#3E3027", fontFamily: "Kefa", fontWeight: 400, fontSize: "40px", mb: 1 }}>
-              Favourite products
+  return (
+    <Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: 4, md: 4 } }}>
+      {user && (
+        <Box>
+          <Typography sx={{ color: "#3E3027", fontFamily: "Kefa", fontWeight: 400, fontSize: { xs: "24px", sm: "32px", md: "40px" }, mb: 1, textAlign: "center" }}>
+            Favourite products
+          </Typography>
+
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: { xs: "flex-start", md: "center" }, gap: 1, mb: 4, flexWrap: "nowrap" }}>
+            <Tooltip title="Share favorites list">
+              <IconButton onClick={handleShare} sx={{ color: "#16675C", "&:hover": { backgroundColor: "rgba(22, 103, 92, 0.1)" } }}>
+                <ShareIcon />
+              </IconButton>
+            </Tooltip>
+            <Typography sx={{ ...h5, fontSize: { xs: "14px", md: "18px" } }}>
+              Share a link to the list of your favorite products with friends!
             </Typography>
-
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, mb: 4 }}>
-              <Tooltip title="Share favorites list">
-                <IconButton
-                  onClick={handleShare}
-                  sx={{ color: "#16675C", "&:hover": { backgroundColor: "rgba(22, 103, 92, 0.1)" } }}
-                >
-                  <ShareIcon />
-                </IconButton>
-              </Tooltip>
-
-              <Typography sx={{ ...h5 }}>
-                Share a link to the list of your favorite products with friends!
-              </Typography>
-            </Box>
           </Box>
-        )}
+        </Box>
+      )}
 
-        {user && allFavorites.length > 0 && (
-          <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "center" }}>
-            {allFavorites.map((item) => {
-              const itemId = String(item.id);
-              const isFavorite = favoritesMap[itemId];
+      {user && allFavorites.length > 0 ? (
+        <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, flexWrap: "wrap", justifyContent: "center" }}>
+          {allFavorites.map((item) => {
+            const isProduct = item.type === "product";
+            const supply = isProduct ? item.supplies?.[0] : null;
+            const cartKey = isProduct ? `${item.id}-${supply?.id || 'default'}` : `${item.id}`;
+            const isInCart = cartEntries.some(([key]) => key === cartKey);
+            const price = isProduct
+              ? (supply ? getPrice(supply, currency) : getProductPrice(item, currency))
+              : getProductPrice(item, currency);
+            
+            // Проверка наличия товара
+            let isOutOfStock = false;
+            if (isProduct) {
+              // Для продуктов проверяем quantity в supplies
+              if (!item.supplies || item.supplies.length === 0) {
+                isOutOfStock = true;
+              } else if (!supply) {
+                isOutOfStock = true;
+              } else {
+                const supplyQuantity = supply.quantity !== undefined && supply.quantity !== null ? Number(supply.quantity) : 0;
+                isOutOfStock = supplyQuantity <= 0;
+              }
+            } else {
+              // Для аксессуаров проверяем quantity
+              const itemQuantity = item.quantity !== undefined && item.quantity !== null ? Number(item.quantity) : 0;
+              isOutOfStock = itemQuantity <= 0;
+            }
 
-              const isProduct = item.type === "product";
-              const selectedSupply = isProduct ? item.supplies?.[0] || { id: "default", price: item.price || 0 } : null;
-              const cartKey = isProduct ? `${item.id}-${selectedSupply.id}` : `${item.id}`;
-              const isInCart = cartEntries.some(([key]) => key === cartKey);
-              const price = isProduct
-                ? Number(selectedSupply.price || item.price || 0)
-                : Number(item.price) || 0;
+            return (
+              <Card key={cartKey} sx={{ 
+                width: { xs: "100%", sm: 280, md: 300 }, 
+                height: { xs: "auto", md: 480 }, 
+                display: "flex", flexDirection: "column", 
+                borderRadius: "24px", p: { xs: 1.5, md: 2 }, boxShadow: 2,
+                opacity: isOutOfStock ? 0.7 : 1
+              }}>
+          
+                <Box sx={{ position: "relative", width: "100%", height: { xs: 200, md: 250 }, mb: { xs: 1.5, md: 2 } }}>
+                  <FavoriteProductImage item={item} isMobile={isMobile} />
+                  
+                  <Box 
+                    component="img" 
+                    src={favoritesMap[String(item.id)] ? favoriteActive : favorite} 
+                    alt="favorite"
+                    sx={{ position: "absolute", top: 10, right: 10, width: 30, height: 30, cursor: "pointer", zIndex: 10 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFavorite(item);
+                    }}
+                  />
+                </Box>
 
-              const productPath = isProduct
-                ? `/coffee/product/${item.id}`
-                : `/accessories/product/${item.id}`;
-
-              return (
-                <Card key={cartKey} sx={{ width: 300, height: 480, display: "flex", flexDirection: "column", borderRadius: "24px", p: 2, boxShadow: 2}}>
-                  <Box sx={{ position: "relative", width: "100%", height: 250, mb: 2 }}>
-                    {item.photos_url?.[0]?.url ? (
-                      <CardMedia component="img" image={item.photos_url[0].url} alt={item.name} sx={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                    ) : (
-                      <Box sx={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "#f0f0f0", color: "#888" }} >
-                        No image
-                      </Box>
-                    )}
-
-                    <Box component="img" src={isFavorite ? favoriteActive : favorite} alt="favorite"
-                      sx={{ position: "absolute", top: 16, right: 16, width: 32, height: 32, cursor: "pointer"}}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleFavorite(item);
-                      }}
-                    />
+                <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", p: '8px !important' }}>
+                  <Box sx={{ height: { xs: 70, md: 88 }, overflow: "hidden" }}>
+                    <Typography 
+                      sx={{ ...h4, mb: 1, cursor: "pointer", fontSize: { xs: "16px", md: "18px" }, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                      onClick={() => navigate(isProduct ? `/coffee/product/${item.id}` : `/accessories/product/${item.id}`)}
+                    >
+                      {item.name || "Unnamed"}
+                    </Typography>
+                    <ClampText lines={2} sx={{ ...h7, fontSize: { xs: "12px", md: "14px" } }}>
+                      {item.description}
+                    </ClampText>
                   </Box>
 
-                  <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                    <Box sx={{ height: 88, overflow: "hidden" }}>
-                      <Typography sx={{ ...h4, mb: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer"}}
-                        onClick={() => navigate(productPath)}
-                      >
-                        {item.name || "No name"}
-                      </Typography>
+                  <Typography sx={{ mt: 'auto', color: "#16675C", fontSize: 18, fontWeight: 700, textAlign: "right", mb: 1 }}>
+                    {formatPrice(price, currency)}
+                  </Typography>
 
-                      <ClampText lines={2} sx={{ ...h7, mb: 1, wordBreak: "break-word" }}>
-                        {item.description || "No description"}
-                      </ClampText>
-                    </Box>
-
-                    <Typography sx={{ mt: 1, color: "#16675C", fontSize: 14, fontWeight: 700, textAlign: "right", mb: 1 }}>
-                      ${price.toFixed(2)}
-                    </Typography>
-
-                    <Button variant="contained" onClick={() => handleAddToCart(item)} sx={isInCart ? btnInCart : btnCart}
-                      endIcon={<Box component="img" src={isInCart ? incart : shopping} alt="" sx={{ width: 24, height: 24 }} />}>
-                      {isInCart ? "In cart" : "Add to bag"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  <Button
+                    variant="contained"
+                    disabled={isOutOfStock}
+                    onClick={() => handleAddToCart(item)}
+                    sx={{ 
+                      ...(isInCart ? btnInCart : btnCart),
+                      fontSize: { xs: "12px", md: "14px" },
+                      py: 1,
+                      ...(isOutOfStock && {
+                        backgroundColor: "#999999 !important",
+                        color: "#FFFFFF !important",
+                        cursor: "not-allowed",
+                        "&:hover": {
+                          backgroundColor: "#999999 !important",
+                        }
+                      })
+                    }}
+                    endIcon={!isOutOfStock && <Box component="img" src={isInCart ? incart : shopping} sx={{ width: 22, height: 22 }} />}
+                  >
+                    {isOutOfStock ? "Sold Out" : (isInCart ? "In cart" : "Add to bag")}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
+      ) : (
+        !loading && user && (
+          <Box sx={{ textAlign: "center",}}>
+            <FavoriteBorderIcon sx={{ fontSize: 80, color: "#a4795b", mb: 4 }} />
+            <Typography sx={{ color: "#3E3027", fontSize: "18px", mb: 4 }}>Your favorites list is empty</Typography>
           </Box>
-        )}
+        )
+      )}
 
-        {user && allFavorites.length === 0 && (
-          <Typography sx={{ textAlign: "center", mt: 4 }}>No favorites found</Typography>
-        )}
-      </Grid>
+      
       <LoginModal open={loginOpen} handleClose={() => setLoginOpen(false)} />
+      
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      />
-    </Grid>
+      >
+        <Box sx={{ 
+          bgcolor: "#16675C", 
+          color: "#fff", 
+          px: 3, py: 1, 
+          borderRadius: "20px", 
+          boxShadow: 3,
+          fontSize: "14px"
+        }}>
+          {snackbarMessage}
+        </Box>
+      </Snackbar>
+    </Box>
   );
 }

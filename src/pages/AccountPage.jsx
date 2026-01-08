@@ -21,7 +21,6 @@ import { h3, h5 } from "../styles/typographyStyles";
 
 const tabPaths = ["personal-info", "account-settings", "orders-history", "logout"];
 
-// Список админских email (должен совпадать с authSlice и App.jsx)
 const ADMIN_EMAILS = [
   'admin@coffeelane.com',
   'admin@example.com',
@@ -32,8 +31,6 @@ export default function AccountPage() {
   const location = useLocation();
   const dispatch = useDispatch();
   const auth = useSelector((state) => state.auth);
-  
-  // console.log("▶ AccountPage. auth:", auth);
 
   let userEmail = null;
 
@@ -45,34 +42,25 @@ export default function AccountPage() {
     userEmail = auth.email;
   }
 
-  // Проверяем, является ли пользователь админом
   const isAdminUser = auth.isAdmin || 
     (userEmail && ADMIN_EMAILS.some(adminEmail => 
       userEmail.toLowerCase().trim() === adminEmail.toLowerCase().trim()
     )) ||
     (auth.user?.role === 'admin' || auth.user?.role === 'Administrator');
 
-  // Если пользователь админ, перенаправляем на админскую страницу аккаунта
   useEffect(() => {
     if (isAdminUser) {
       navigate('/admin/account');
     }
   }, [isAdminUser, navigate]);
 
-  // Если пользователь админ, не рендерим обычную страницу аккаунта
   if (isAdminUser) {
-    return null; // или можно показать загрузку
+    return null; 
   }
 
   const userData = auth.user
     ? { ...auth.user, email: userEmail || "" }
     : null;
-
-// console.log("▶ AccountPage. userData:", userData);
-// console.log("▶ AccountPage. userEmail:", userEmail);
-// console.log("▶ AccountPage. auth.user:", auth.user);
-// console.log("▶ AccountPage. auth.profile:", auth.profile);
-// console.log("▶ AccountPage. auth.email:", auth.email);
 
   const getTabIndexFromPath = () => {
     const path = location.pathname.split("/").pop();
@@ -97,59 +85,69 @@ export default function AccountPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("access");
-    // Всегда обновляем профиль при монтировании компонента, чтобы получить актуальные данные
-    // Это важно, чтобы разделить данные обычного пользователя и админа
+
     if (token && !auth.tokenInvalid && !auth.loading) {
-      // console.log("▶ AccountPage - Fetching profile to ensure we have current user data...");
       dispatch(fetchProfile());
     }
-  }, [dispatch]); // Вызываем только при монтировании компонента
+  }, [dispatch, auth.tokenInvalid, auth.loading]);
 
   const handleLogout = async () => {
-    // console.log("▶ LOGOUT CLICK");
+    console.log("▶ LOGOUT CLICK");
     const result = await dispatch(logoutUser());
      navigate("/");
-    // console.log("LOGOUT RESULT:", result);
   };
 
   return (
-    <Grid
-      size={12}
-      sx={{ px: 4, py: 4, display: "flex", flexDirection: "column", alignItems: "center" }}
-    >
-      <Typography sx={{ ...h3, textAlign: "center", mb: 3, width: "100%" }}>
+    <Grid size={12} sx={{ px: { xs: 2, sm: 2, md: 4 }, py: { xs: 2, md: 4 }, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <Typography sx={{ ...h3, textAlign: "center", mb: { xs: 2, md: 3 }, width: "100%", fontSize: { xs: '24px', md: '32px' } }}>
         My Account
       </Typography>
-      <Paper elevation={1} sx={{ borderRadius: 3, p: 2, width: "100%", maxWidth: "1400px" }}>
-        <Grid container spacing={6}>
-          <Grid size={{ xs: 12, md: 4 }} sx={{ mt: 2 }}>
+      <Paper elevation={1} sx={{ borderRadius: 3, p: { xs: 1, md: 2 }, width: "100%", maxWidth: "1400px" }}>
+        <Grid container spacing={{ xs: 2, md: 6 }}>
+          <Grid size={{ xs: 12, md: 4 }} sx={{ mt: { xs: 0, md: 2 }, display: "flex", flexDirection: "column" }}>
             <Tabs
-              orientation="vertical"
+              orientation={{ xs: "horizontal", md: "vertical" }}
               value={tab}
               onChange={handleChange}
-              variant="scrollable"
+              variant={{ xs: "scrollable", md: "standard" }}
+              scrollButtons={{ xs: "auto", md: false }}
               TabIndicatorProps={{ style: { display: "none" } }}
               sx={{
+                borderRight: { xs: "none", md: "1px solid #E0E0E0" },
+                width: { xs: "100%", md: "100%" },
+                "& .MuiTabs-flexContainer": {
+                  flexDirection: { xs: "row", md: "column" },
+                  justifyContent: { xs: "center", md: "flex-start" },
+                  alignItems: { xs: "center", md: "flex-start" },
+                  gap: { xs: 0.5, md: 0 },
+                },
                 "& .MuiTab-root": {
                   ...h5,
                   textTransform: "none",
-                  alignItems: "flex-start",
-                  justifyContent: "flex-start",
-                  py: 2,
+                  alignItems: { xs: "center", md: "flex-start" },
+                  justifyContent: { xs: "center", md: "flex-start" },
+                  py: { xs: 0.75, md: 2 },
+                  px: { xs: 1, md: 2 },
+                  fontSize: { xs: '11px', md: '16px' },
+                  minHeight: { xs: 40, md: 72 },
+                  width: { xs: "auto", md: "100%" },
+                  maxWidth: { xs: "none", md: "100%" },
                 },
                 "& .Mui-selected": { color: "#A4795B !important" },
+                borderBottom: { xs: "1px solid #E0E0E0", md: "none" },
+                mb: { xs: 2, md: 0 },
               }}
             >
-              <Tab icon={<PersonOutlineIcon />} iconPosition="start" label="Profile" />
-              <Tab icon={<SettingsOutlinedIcon />} iconPosition="start" label="Settings" />
+              <Tab icon={<PersonOutlineIcon sx={{ fontSize: { xs: 16, md: 24 } }} />} iconPosition="start" label="Profile" />
+              <Tab icon={<SettingsOutlinedIcon sx={{ fontSize: { xs: 16, md: 24 } }} />} iconPosition="start" label="Settings" />
               <Tab
-                icon={<ShoppingBagOutlinedIcon />}
+                icon={<ShoppingBagOutlinedIcon sx={{ fontSize: { xs: 16, md: 24 } }} />}
                 iconPosition="start"
                 label="Orders"
-                sx={{ borderBottom: "1px solid #E0E0E0", mb: 1 }}
+                sx={{ borderBottom: { xs: "none", md: "1px solid #E0E0E0" }, mb: { xs: 0, md: 1 } }}
               />
               <Tab
-                icon={<LogoutOutlinedIcon />}
+                icon={<LogoutOutlinedIcon sx={{ fontSize: { xs: 16, md: 24 } }} />}
                 iconPosition="start"
                 label="Log out"
                 sx={{
@@ -161,9 +159,9 @@ export default function AccountPage() {
             </Tabs>
           </Grid>
 
-          <Grid sx={{ flexGrow: 1 }} size={{ xs: 12, md: 8 }}>
+          <Grid sx={{ flexGrow: 1 }} size={{ xs: 12, md: 8, }}>
             <TabPanel value={tab} index={0}>
-              <PersonalInfoForm user={userData} />;
+              <PersonalInfoForm user={userData} />
             </TabPanel>
             <TabPanel value={tab} index={1}>
               <AccountSettingsForm />

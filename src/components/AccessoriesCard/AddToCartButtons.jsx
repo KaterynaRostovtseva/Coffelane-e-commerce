@@ -3,7 +3,8 @@ import { Box, Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { selectCartItems, addToCart } from "../../store/slice/cartSlice.jsx";
-import { btnStyles, btnBorderStyles } from "../../styles/btnStyles.jsx";
+import { btnStyles, btnBorderStyles } from "../../styles/btnStyles.jsx";
+
 
 export default function AddToCartButtons({ product, quantity }) {
     const dispatch = useDispatch();
@@ -13,10 +14,12 @@ export default function AddToCartButtons({ product, quantity }) {
 
     if (!product) return null;
 
+    const isOutOfStock = (product.quantity !== undefined ? Number(product.quantity) : 0) <= 0;
     const key = `${product.id}`;
     const isInCart = cartEntries.some(([cartKey]) => cartKey === key);
 
     const addProductToCart = () => {
+        if (isOutOfStock) return;
         dispatch(
             addToCart({
                 product: {
@@ -40,16 +43,39 @@ export default function AddToCartButtons({ product, quantity }) {
 
     return (
         <>
-            <Box sx={{ display: "flex", gap: 2, mt: 7 }}>
-                <Button onClick={handleAddToCart} sx={{ ...(isInCart ? btnBorderStyles : btnStyles), textTransform: "none", width: "100%" }} >
-                    {isInCart ? "In cart" : "Add to cart"}
+            <Box sx={{ 
+                display: "flex", 
+                flexDirection: { xs: "column", md: "row" },
+                gap: { xs: 1.5, md: 2 }, 
+                mt: { xs: 3, md: 7 },
+                width: "100%"
+            }}>
+                <Button 
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    sx={{ 
+                        ...(isInCart ? btnBorderStyles : btnStyles), 
+                        textTransform: "none", 
+                        width: "100%",
+                        py: { xs: 1.5, md: 1.75 },
+                        fontSize: { xs: '14px', md: '16px' }
+                    }}
+                >
+                    {isOutOfStock ? "Sold Out" : (isInCart ? "In cart" : "Add to cart")}
                 </Button>
-                <Button sx={{ ...btnBorderStyles, width: "100%" }} onClick={handleCheckout}>
-                    Checkout now
+                <Button 
+                    disabled={isOutOfStock}
+                    sx={{ 
+                        ...btnBorderStyles, 
+                        width: "100%",
+                        py: { xs: 1.5, md: 1.75 },
+                        fontSize: { xs: '14px', md: '16px' }
+                    }} 
+                    onClick={handleCheckout}
+                >
+                    {isOutOfStock ? "Sold Out" : "Checkout now"}
                 </Button>
             </Box>
-
-            {}
         </>
     );
 }
