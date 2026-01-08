@@ -53,19 +53,11 @@ src/
 
 ---
 
-## 📸 Screenshots
-
-![Home Page](./screenshots/home.png)
-![Product Catalog](./screenshots/catalog.png)
-![Cart Page](./screenshots/cart.png)
-![Admin Panel](./screenshots/admin.png)
-
----
-
 ## ▶️ Getting Started
 
 ### 1. Clone the repository
 git clone https://github.com/KaterynaRostovtseva/Coffelane-e-commerce.git
+
 cd Coffelane-e-commerce
 
 ### 2. Install dependencies
