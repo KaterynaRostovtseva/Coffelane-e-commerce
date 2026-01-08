@@ -44,11 +44,17 @@ Responsive e-commerce web application for ordering coffee and accessories with a
 ## 📁 Project Structure
 
 src/
+
  ├─ api/
+ 
  ├─ components/
+ 
  ├─ pages/
+ 
  ├─ store/
+ 
  ├─ routes/
+ 
  └─ utils/
 
 ---
