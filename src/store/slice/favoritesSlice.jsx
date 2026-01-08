@@ -11,13 +11,10 @@ export const fetchFavorites = createAsyncThunk(
     const token = tokenFromState || tokenFromStorage;
 
     if (!token) {
-
       return [];
     }
 
-
     if (state.favorites.loading) {
-      // console.log("fetchFavorites already loading, returning current favorites");
       return state.favorites.favorites;
     }
 
@@ -26,19 +23,11 @@ export const fetchFavorites = createAsyncThunk(
     }
 
     try {
-      const api = apiWithAuth(tokenFromState);
-      const res = await api.get("/favorites");
-
-      // console.log("fetchFavorites API response:", res.data);
-      // console.log("fetchFavorites items from server:", res.data.items);
-
-
+      // Используем apiWithAuth напрямую - интерцептор автоматически добавит токен
+      const res = await apiWithAuth.get("/favorites");
       const items = res.data.items || [];
 
-      // console.log("fetchFavorites items count:", items.length);
-
       if (items.length === 0) {
-        // console.log("No favorites on server, returning empty array");
         return [];
       }
 
@@ -81,16 +70,16 @@ export const fetchFavorites = createAsyncThunk(
         const fetchedItems = [];
         for (const item of needsFetch) {
           try {
-            await new Promise(resolve => setTimeout(resolve, 100)); // Задержка 100ms между запросами
+            await new Promise(resolve => setTimeout(resolve, 100)); 
             if (item.type === 'product') {
-              const res = await api.get(`/products/${item.id}`);
+              const res = await apiWithAuth.get(`/products/${item.id}`);
               fetchedItems.push({ ...res.data, type: 'product' });
             } else if (item.type === 'accessory') {
-              const res = await api.get(`/accessories/${item.id}`);
+              const res = await apiWithAuth.get(`/accessories/${item.id}`);
               fetchedItems.push({ ...res.data, type: 'accessory' });
             }
           } catch (error) {
-            // console.warn(`Failed to fetch ${item.type} ${item.id}:`, error);
+            console.warn(`Failed to fetch ${item.type} ${item.id}:`, error);
 
           }
         }
@@ -101,11 +90,11 @@ export const fetchFavorites = createAsyncThunk(
 
       return mappedItems;
     } catch (error) {
-
+      // Интерцептор автоматически обработает 401 и попытается обновить токен
+      // Если токен не может быть обновлен, интерцептор отклонит запрос
+      // Здесь просто возвращаем пустой массив или ошибку
       if (error.response?.status === 401) {
-
-        localStorage.removeItem("access");
-
+        // Если после попытки рефреша все еще 401, значит сессия истекла
         return [];
       }
       return rejectWithValue(error.response?.data?.detail || "Error loading favorites");
@@ -121,10 +110,7 @@ export const toggleFavoriteItem = createAsyncThunk(
     const state = getState();
     const toggleKey = `${itemType}-${itemId}`;
 
-    // console.log("toggleFavoriteItem called:", { itemType, itemId, toggleKey });
-
     if (state.favorites.toggling[toggleKey]) {
-      // console.log("Toggle already in progress, skipping");
       return rejectWithValue("Toggle already in progress");
     }
 
@@ -140,10 +126,8 @@ export const toggleFavoriteItem = createAsyncThunk(
     }
 
     try {
-      const api = apiWithAuth(tokenFromState);
-      // console.log("Sending toggle request:", { itemType, itemId });
-      const response = await api.post(`/favorites/${itemType}/${itemId}/toggle/`);
-      // console.log("Toggle request successful:", response.data);
+      // Используем apiWithAuth напрямую - интерцептор автоматически добавит токен
+      const response = await apiWithAuth.post(`/favorites/${itemType}/${itemId}/toggle/`);
       return { success: true, itemType, itemId };
     } catch (error) {
 
@@ -151,17 +135,15 @@ export const toggleFavoriteItem = createAsyncThunk(
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
-          const api = apiWithAuth(tokenFromState);
-          const response = await api.post(`/favorites/${itemType}/${itemId}/toggle/`);
-          // console.log("Toggle retry successful:", response.data);
+          const response = await apiWithAuth.post(`/favorites/${itemType}/${itemId}/toggle/`);
 
           return { success: true, itemType, itemId };
         } catch (retryError) {
           return rejectWithValue("Too many requests. Please try again later.");
         }
       } else if (error.response?.status === 401) {
-
-        localStorage.removeItem("access");
+        // Интерцептор уже попытался обновить токен
+        // Если все еще 401, значит сессия истекла
         return rejectWithValue("User not authenticated. Please log in.");
       }
       return rejectWithValue(error.response?.data?.detail || "Error toggling favorite");
@@ -187,10 +169,7 @@ const favoritesSlice = createSlice({
       .addCase(fetchFavorites.pending, state => { state.loading = true; })
       .addCase(fetchFavorites.fulfilled, (state, action) => {
         state.loading = false;
-        // console.log("fetchFavorites.fulfilled - received:", action.payload.length, "items");
-        // console.log("fetchFavorites.fulfilled - items:", action.payload);
         state.favorites = action.payload;
-        // console.log("fetchFavorites.fulfilled - state.favorites now has:", state.favorites.length, "items");
       })
       .addCase(fetchFavorites.rejected, (state, action) => {
         state.loading = false;
@@ -205,52 +184,35 @@ const favoritesSlice = createSlice({
         const existingIndex = state.favorites.findIndex(item =>
           item.id == itemId || String(item.id) === String(itemId)
         );
-        // console.log("toggleFavoriteItem.pending:", { itemType, itemId, existingIndex, currentFavorites: state.favorites.length });
         if (existingIndex >= 0) {
-
           state.favorites = state.favorites.filter(item =>
             item.id != itemId && String(item.id) !== String(itemId)
           );
-          // console.log("Removed from favorites, new length:", state.favorites.length);
         } else {
-
-
           const { itemData } = action.meta.arg;
           if (itemData) {
-
             state.favorites.push({ ...itemData, type: itemType });
-            // console.log("Added to favorites optimistically, new length:", state.favorites.length);
           } else {
-
-            // console.log("Item not in favorites, no itemData provided, will be added after fetchFavorites");
+            console.log("Item not in favorites, no itemData provided, will be added after fetchFavorites");
           }
         }
       })
       .addCase(toggleFavoriteItem.fulfilled, (state, action) => {
-
         const { itemType, itemId } = action.meta.arg;
         const toggleKey = `${itemType}-${itemId}`;
         delete state.toggling[toggleKey];
-
-
-        // console.log("toggleFavoriteItem.fulfilled:", { itemType, itemId, favoritesCount: state.favorites.length });
       })
       .addCase(toggleFavoriteItem.rejected, (state, action) => {
 
         const { itemType, itemId } = action.meta.arg;
         const toggleKey = `${itemType}-${itemId}`;
         delete state.toggling[toggleKey];
-
-        // console.log("toggleFavoriteItem.rejected:", action.payload);
         state.error = action.payload;
-
 
         const existingIndex = state.favorites.findIndex(item =>
           item.id == itemId || String(item.id) === String(itemId)
         );
         if (existingIndex === -1) {
-
-
 
         }
       });

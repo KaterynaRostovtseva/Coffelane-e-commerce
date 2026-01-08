@@ -12,15 +12,14 @@ import Navbar from '../Navbar/index.jsx';
 import LoginModal from "../../components/Modal/LoginModal.jsx";
 import BasketModal from "../../components/Modal/BasketModal.jsx";
 import EmptyCartModal from "../../components/Modal/EmptyCartModal.jsx";
-
 import { useSelector, useDispatch } from "react-redux";
 import { selectCartCount, selectCartItems, addToCart, decrementQuantity, removeFromCart } from "../../store/slice/cartSlice.jsx";
 import SettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-
-import { searchProducts, clearSearch, setQuery } from "../../store/slice/searchSlice.jsx";
+import { searchAll, clearSearch, setQuery } from "../../store/slice/searchSlice.jsx";
 import SearchDropdown from "../SearchDropdown/index.jsx";
+import { CurrencySwitcher } from "../CurrencySwitcher.jsx";
 
 
 function Header() {
@@ -35,7 +34,7 @@ function Header() {
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [messageType, setMessageType] = useState('');
     const [modalParams, setModalParams] = useState({ initialScreen: null, recoveryToken: null });
-    const [returnPath, setReturnPath] = useState(null); // Сохраняем путь, откуда открыли модалку
+    const [returnPath, setReturnPath] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
     const cartCount = useSelector(selectCartCount);
@@ -53,7 +52,7 @@ function Header() {
         const timeoutId = setTimeout(() => {
             if (searchInput.trim()) {
                 // console.log(' Dispatching search for:', searchInput);
-                dispatch(searchProducts(searchInput));
+                dispatch(searchAll(searchInput));
                 setShowSearchDropdown(true);
             } else {
                 dispatch(clearSearch());
@@ -71,20 +70,16 @@ function Header() {
 
     const handleAccountClick = () => {
         if (user) {
-            // Если пользователь админ, ведем на админскую страницу аккаунта
             if (isAdmin) {
-                // Переходим только если не на этой странице
                 if (location.pathname !== '/admin/account') {
                     navigate('/admin/account');
                 }
             } else {
-                // Переходим только если не на странице аккаунта
                 if (!location.pathname.startsWith('/account')) {
                     navigate('/account/personal-info');
                 }
             }
         } else {
-            // Если пользователь не залогинен, открываем модалку логина
             setReturnPath(location.pathname);
             setIsLoginModalOpen(true);
         }
@@ -130,7 +125,7 @@ function Header() {
                 const [, item] = currentItem;
                 const currentQty = item.quantity;
                 const diff = newQty - currentQty;
-                
+
                 if (diff < 0) {
 
                     for (let i = 0; i < Math.abs(diff); i++) {
@@ -189,12 +184,9 @@ function Header() {
         }
     }, [searchParams, setSearchParams]);
 
-    const favoriteItems = useSelector(state => state.favorites.favorites); // массив избранных
+    const favoriteItems = useSelector(state => state.favorites.favorites);
     const favoritesCount = favoriteItems ? favoriteItems.length : 0;
     const hasFavorites = favoritesCount > 0;
-
-    // console.log("Header - favoriteItems:", favoriteItems);
-    // console.log("Header - favoritesCount:", favoritesCount);
 
     const goToFavorites = () => {
         if (user) {
@@ -222,7 +214,7 @@ function Header() {
         <Box sx={{ flexGrow: 1 }}>
             <TopLine />
 
-            {}
+            { }
             {showSuccessMessage && (
                 <Alert severity={messageType}
                     sx={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, minWidth: { xs: '90%', sm: '300px' }, maxWidth: '90vw' }} onClose={() => setShowSuccessMessage(false)} >
@@ -233,7 +225,7 @@ function Header() {
             )}
 
             {isMobile ? (
-                // Мобильная версия Header
+                // Mobail
                 <Box sx={{ backgroundColor: '#EAD9C9', px: 2, py: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px' }}>
                         <IconButton
@@ -246,15 +238,18 @@ function Header() {
                             <Box component="img" src={logo} alt="Coffee Lane logo"
                                 sx={{ width: { xs: '100px', sm: '120px' }, height: 'auto', cursor: 'pointer' }} />
                         </Link>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
                             <IconButton
                                 onClick={() => setShowMobileSearch(!showMobileSearch)}
-                                sx={{ color: '#3E3027', p: 1 }}
+                                sx={{ color: '#3E3027', p: { xs: 0.5, sm: 1 } }}
                             >
                                 <Box component="img" src={Search} alt="search-icon"
                                     sx={{ width: '20px', height: '20px' }} />
                             </IconButton>
-                            <Button onClick={goToFavorites} disableRipple sx={{ minWidth: 0, p: 0.5, position: "relative" }}>
+                            <Box sx={{ px: { xs: 0, sm: 1 }, py: { xs: 0.5, sm: 1 }, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <CurrencySwitcher />
+                            </Box>
+                            <Button onClick={goToFavorites} disableRipple sx={{ minWidth: 0, p: { xs: 0.25, sm: 0.5 }, position: "relative" }}>
                                 {hasFavorites ? (
                                     <FavoriteIcon sx={{ color: 'red', fontSize: 20 }} />
                                 ) : (
@@ -272,14 +267,14 @@ function Header() {
                                     e.stopPropagation();
                                     handleAccountClick();
                                 }}
-                                sx={{ color: '#3E3027', p: 0.5, zIndex: 1 }}
+                                sx={{ color: '#3E3027', p: { xs: 0.25, sm: 0.5 }, zIndex: 1 }}
                                 aria-label="Account"
                             >
                                 <Box component="img" src={account} alt="User account"
                                     sx={{ width: '20px', height: '20px', pointerEvents: 'none' }} />
                             </IconButton>
                             {!orderCompleted && (
-                                <Button onClick={handleOpenCartModal} disableRipple sx={{ minWidth: 0, p: 0.5, position: "relative" }}>
+                                <Button onClick={handleOpenCartModal} disableRipple sx={{ minWidth: 0, p: { xs: 0.25, sm: 0.5 }, position: "relative" }}>
                                     <Box component="img" src={ShoppingCart} alt="Shopping cart"
                                         sx={{ width: '20px', height: '20px' }} />
                                     {cartCount > 0 && (
@@ -297,7 +292,7 @@ function Header() {
                                         aria-label="Admin panel"
                                         sx={{
                                             color: '#16675C',
-                                            p: 0.5,
+                                            p: { xs: 0.25, sm: 0.5 },
                                         }}
                                     >
                                         <SettingsIcon sx={{ fontSize: 20 }} />
@@ -306,7 +301,7 @@ function Header() {
                             )}
                         </Box>
                     </Box>
-                    
+
                     {showMobileSearch && (
                         <Box sx={{ mt: 1, mb: 1 }}>
                             <form onSubmit={handleSearchSubmit}>
@@ -355,7 +350,6 @@ function Header() {
                         </Box>
                     )}
 
-                    {/* Мобильное меню */}
                     <Drawer
                         anchor="left"
                         open={mobileMenuOpen}
@@ -380,10 +374,10 @@ function Header() {
                                 component={RouterNavLink}
                                 to="/"
                                 onClick={() => setMobileMenuOpen(false)}
-                                sx={{ 
-                                    color: '#3E3027', 
-                                    justifyContent: 'flex-start', 
-                                    textTransform: 'none', 
+                                sx={{
+                                    color: '#3E3027',
+                                    justifyContent: 'flex-start',
+                                    textTransform: 'none',
                                     fontSize: '16px',
                                     fontFamily: 'Montserrat, sans-serif',
                                     fontWeight: 500,
@@ -400,10 +394,10 @@ function Header() {
                                 component={RouterNavLink}
                                 to="/coffee"
                                 onClick={() => setMobileMenuOpen(false)}
-                                sx={{ 
-                                    color: '#3E3027', 
-                                    justifyContent: 'flex-start', 
-                                    textTransform: 'none', 
+                                sx={{
+                                    color: '#3E3027',
+                                    justifyContent: 'flex-start',
+                                    textTransform: 'none',
                                     fontSize: '16px',
                                     fontFamily: 'Montserrat, sans-serif',
                                     fontWeight: 500,
@@ -420,10 +414,10 @@ function Header() {
                                 component={RouterNavLink}
                                 to="/accessories"
                                 onClick={() => setMobileMenuOpen(false)}
-                                sx={{ 
-                                    color: '#3E3027', 
-                                    justifyContent: 'flex-start', 
-                                    textTransform: 'none', 
+                                sx={{
+                                    color: '#3E3027',
+                                    justifyContent: 'flex-start',
+                                    textTransform: 'none',
                                     fontSize: '16px',
                                     fontFamily: 'Montserrat, sans-serif',
                                     fontWeight: 500,
@@ -440,10 +434,10 @@ function Header() {
                                 component={RouterNavLink}
                                 to="/ourStory"
                                 onClick={() => setMobileMenuOpen(false)}
-                                sx={{ 
-                                    color: '#3E3027', 
-                                    justifyContent: 'flex-start', 
-                                    textTransform: 'none', 
+                                sx={{
+                                    color: '#3E3027',
+                                    justifyContent: 'flex-start',
+                                    textTransform: 'none',
                                     fontSize: '16px',
                                     fontFamily: 'Montserrat, sans-serif',
                                     fontWeight: 500,
@@ -474,7 +468,6 @@ function Header() {
                     </Drawer>
                 </Box>
             ) : (
-                // Десктопная версия Header
                 <Grid container alignItems="center" justifyContent="space-between" sx={{ height: '83px', backgroundColor: '#EAD9C9', padding: { xs: '0 16px', sm: '0 32px', md: '0 48px' } }}>
                     <Link to="/">
                         <Box component="img" src={logo} alt="Coffee Lane logo"
@@ -483,7 +476,7 @@ function Header() {
                     <Grid sx={{ display: 'flex', justifyContent: 'center' }}>
                         <Navbar />
                     </Grid>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, md: 4 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, md: 2 } }}>
                         <Box sx={{ position: 'relative' }}>
                             <form onSubmit={handleSearchSubmit}>
                                 <Box
@@ -535,7 +528,7 @@ function Header() {
                                 />
                             )}
                         </Box>
-
+                        <CurrencySwitcher />
                         <Button onClick={goToFavorites} disableRipple sx={{ cursor: 'pointer', minWidth: 0, padding: 0, backgroundColor: "transparent", border: "none", position: "relative" }}>
                             {hasFavorites ? (
                                 <FavoriteIcon sx={{ color: 'red', fontSize: 24 }} />
@@ -563,9 +556,9 @@ function Header() {
                         </IconButton>
 
                         {!orderCompleted && (
-                            <Button 
+                            <Button
                                 onClick={handleOpenCartModal}
-                                disableRipple 
+                                disableRipple
                                 sx={{ minWidth: 0, padding: 0, backgroundColor: "transparent", border: "none", "&:hover, &:focus, &:active": { backgroundColor: "#EAD9C9", }, position: "relative", }}
                             >
                                 <Box component="img" src={ShoppingCart} alt="Shopping cart"

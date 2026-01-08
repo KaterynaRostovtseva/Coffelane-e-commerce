@@ -11,7 +11,7 @@ import { btnStyles } from "../../styles/btnStyles.jsx";
 import { inputStyles, checkboxStyles } from "../../styles/inputStyles.jsx";
 import { patterns } from "../utils/validation/validatorsPatterns.jsx";
 import { validatePassword } from "../utils/validation/validatePasswords.jsx";
-import { loginUser, registerUser, loginWithGoogle } from "../../store/slice/authSlice.jsx";
+import { loginUser, registerUser, loginWithGoogle, fetchProfile } from "../../store/slice/authSlice.jsx";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import ForgotPasswordModal from "../Modal/ForgotPassword.jsx";
@@ -42,15 +42,22 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
     const [resetToken, setResetToken] = useState("");
     const [intermediateOpen, setIntermediateOpen] = useState(false);
     const [intermediateEmail, setIntermediateEmail] = useState("");
-    const [forgotEmail, setForgotEmail] = useState("");
+
+
 
     useEffect(() => {
-        // console.log("openResetByLink", openResetByLink, "tokenFromLink", tokenFromLink);
-        if (openResetByLink && tokenFromLink) {
+        if (openResetByLink && tokenFromLink && tokenFromLink !== 'login' && !resetOpen && !successModalOpen) {
             setResetToken(tokenFromLink);
             setResetOpen(true);
         }
-    }, [openResetByLink, tokenFromLink]);
+    }, [openResetByLink, tokenFromLink, resetOpen, successModalOpen]);
+    
+    useEffect(() => {
+        const token = localStorage.getItem("access");
+        if (token === "null" || token === "undefined") {
+            localStorage.removeItem("access");
+        }
+    }, []);
 
     const openIntermediate = (email) => {
         setIntermediateEmail(email);
@@ -65,10 +72,12 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
     const validateLoginForm = () => {
         const newErrors = {};
 
-        if (!email.trim()) {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail) {
             newErrors.email = "Email is required";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            newErrors.email = "Invalid email format (example: user@example.com).";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            newErrors.email = "Invalid email format (example: user@gmail.com).";
         }
 
         if (!password.trim()) {
@@ -76,6 +85,11 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
         }
 
         setErrors(newErrors);
+
+        if (Object.keys(newErrors).length === 0) {
+            setEmail(normalizedEmail);
+        }
+
         return Object.keys(newErrors).length === 0;
     };
 
@@ -127,6 +141,8 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
 
     const handleGoogleLogin = async (credentialResponse) => {
         try {
+            setErrors({});
+
             const token = credentialResponse?.credential;
             if (!token) return;
 
@@ -141,53 +157,94 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                 if (serverToken) {
                     localStorage.setItem("access", serverToken);
                 } else {
-                    console.error("❌ Server did not return access token!");
+                    console.error("Server did not return access token!");
                 }
 
-                if (handleClose) handleClose();
+                dispatch(fetchProfile());
 
-                // Проверяем, является ли пользователь админом
+                if (handleClose) handleClose();
                 const isAdmin = result.payload?.isAdmin || result.payload?.user?.role === 'admin';
                 if (isAdmin) {
-                    // Редиректим админа в админку
                     navigate('/admin');
                 } else if (returnPath) {
-                    // Если есть путь возврата, переходим туда
                     navigate(returnPath);
                 }
             } else {
+                const errorMsg = result.payload?.message || "Google login failed. Please try again.";
+                setErrors({ submit: errorMsg });
                 console.error("Google login failed:", result.payload);
             }
         } catch (e) {
+            setErrors({ submit: "An error occurred during Google login." });
             console.error("Google login error", e);
         }
     };
 
     const handleLogin = async () => {
+        const normalizedEmail = email.trim().toLowerCase();
+
         if (!validateLoginForm()) return;
         // console.log("▶ LOGIN CLICK");
         // console.log("Email:", email);
         // console.log("Password:", password);
 
-        const result = await dispatch(loginUser({ email, password }));
+        const result = await dispatch(loginUser({ email: normalizedEmail, password }));
 
         // console.log("LOGIN RESULT:", result);
 
         if (result.meta.requestStatus === "fulfilled") {
             // console.log("✔ Login successful. Closing modal...");
+            setErrors({});
             if (handleClose) handleClose();
+            dispatch(fetchProfile());
 
-            // Проверяем, является ли пользователь админом
             const isAdmin = result.payload?.isAdmin || result.payload?.user?.role === 'admin';
             if (isAdmin) {
-                // Редиректим админа в админку
                 navigate('/admin');
             } else if (returnPath) {
-                // Если есть путь возврата, переходим туда
                 navigate(returnPath);
             }
         } else {
-            // console.log("✖ Login failed:", result.payload);
+            const errorData = result.payload;
+            let errorMessage = "Invalid email or password";
+            
+            // Check if it's an authentication error and replace with user-friendly message
+            if (typeof errorData === 'string') {
+                const lowerError = errorData.toLowerCase();
+                if (lowerError.includes('no active account') || 
+                    lowerError.includes('invalid credentials') ||
+                    lowerError.includes('authentication') ||
+                    lowerError.includes('неверные') ||
+                    lowerError.includes('не найден')) {
+                    errorMessage = "Invalid email or password";
+                } else {
+                    errorMessage = errorData;
+                }
+            } else if (errorData?.detail) {
+                const lowerError = String(errorData.detail).toLowerCase();
+                if (lowerError.includes('no active account') || 
+                    lowerError.includes('invalid credentials') ||
+                    lowerError.includes('authentication') ||
+                    lowerError.includes('неверные') ||
+                    lowerError.includes('не найден')) {
+                    errorMessage = "Invalid email or password";
+                } else {
+                    errorMessage = errorData.detail;
+                }
+            } else if (errorData?.message) {
+                const lowerError = String(errorData.message).toLowerCase();
+                if (lowerError.includes('no active account') || 
+                    lowerError.includes('invalid credentials') ||
+                    lowerError.includes('authentication') ||
+                    lowerError.includes('неверные') ||
+                    lowerError.includes('не найден')) {
+                    errorMessage = "Invalid email or password";
+                } else {
+                    errorMessage = errorData.message;
+                }
+            }
+
+            setErrors({ submit: errorMessage });
         }
     };
 
@@ -199,12 +256,11 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
         // console.log("Repeat:", repeatPassword);
 
         if (password !== repeatPassword) {
-            // console.log("❌ Passwords do not match!");
+            // console.log(" Passwords do not match!");
             alert("Passwords do not match!");
             return;
         }
 
-        // Создаем объект profile только с заполненными полями
         const profileData = {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
@@ -212,7 +268,6 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
             subscribe_newsletter: subscribeNewsletter,
         };
 
-        // Убираем пустые строки из profile
         Object.keys(profileData).forEach(key => {
             if (profileData[key] === "" || profileData[key] === null || profileData[key] === undefined) {
                 delete profileData[key];
@@ -220,7 +275,7 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
         });
 
         const registrationData = {
-            email: email.trim(),
+            email: email.trim().toLowerCase(),
             password,
             profile: profileData,
         };
@@ -235,16 +290,14 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
             // console.log("✔ Registration successful. Closing modal...");
             setSuccessModalOpen(true);
         } else {
-            console.log("✖ Registration failed:", result.payload);
-            // Показываем ошибку пользователю
+            console.error("Registration failed:", result.payload);
+
             const errorPayload = result.payload || {};
             const newErrors = {};
-            
-            // Функция для форматирования сообщения об ошибке
+
             const formatErrorMessage = (message) => {
                 if (!message) return "";
                 let formatted = String(message);
-                // Улучшаем читаемость сообщений об ошибках
                 if (formatted.includes("already exists")) {
                     formatted = "This email is already registered. Please use a different email or try to log in.";
                 } else if (formatted.includes("Enter your email")) {
@@ -252,47 +305,44 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                 }
                 return formatted;
             };
-            
-            // Обрабатываем ошибки для каждого поля
+
             if (errorPayload.email) {
-                const emailError = Array.isArray(errorPayload.email) 
-                    ? errorPayload.email.join(" ") 
+                const emailError = Array.isArray(errorPayload.email)
+                    ? errorPayload.email.join(" ")
                     : String(errorPayload.email);
                 newErrors.email = formatErrorMessage(emailError);
             }
-            
+
             if (errorPayload.password) {
-                newErrors.password = Array.isArray(errorPayload.password) 
-                    ? errorPayload.password.join(" ") 
+                newErrors.password = Array.isArray(errorPayload.password)
+                    ? errorPayload.password.join(" ")
                     : String(errorPayload.password);
             }
-            
+
             if (errorPayload.profile) {
                 const profileErrors = errorPayload.profile;
                 if (profileErrors.first_name) {
-                    newErrors.firstName = Array.isArray(profileErrors.first_name) 
-                        ? profileErrors.first_name.join(" ") 
+                    newErrors.firstName = Array.isArray(profileErrors.first_name)
+                        ? profileErrors.first_name.join(" ")
                         : String(profileErrors.first_name);
                 }
                 if (profileErrors.last_name) {
-                    newErrors.lastName = Array.isArray(profileErrors.last_name) 
-                        ? profileErrors.last_name.join(" ") 
+                    newErrors.lastName = Array.isArray(profileErrors.last_name)
+                        ? profileErrors.last_name.join(" ")
                         : String(profileErrors.last_name);
                 }
             }
-            
-            // Если есть общее сообщение об ошибке
+
             if (errorPayload.message || errorPayload.error) {
                 if (Object.keys(newErrors).length === 0) {
                     newErrors.submit = errorPayload.message || errorPayload.error || "Registration failed. Please try again.";
                 }
             }
-            
-            // Если нет конкретных ошибок полей, показываем общее сообщение
+
             if (Object.keys(newErrors).length === 0) {
                 newErrors.submit = "Registration failed. Please check your information and try again.";
             }
-            
+
             setErrors(newErrors);
         }
     };
@@ -327,12 +377,23 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                         <Box display="flex" flexDirection="column" gap={2}>
                             {tab === 1 && (
                                 <>
-                                    <TextField label="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth sx={{ ...inputStyles }} error={!!errors.firstName} helperText={errors.firstName} />
-                                    <TextField label="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth sx={{ ...inputStyles }} error={!!errors.lastName} helperText={errors.lastName} />
+                                    <TextField label="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth sx={{ ...inputStyles }} error={!!errors.firstName} helperText={errors.firstName} required />
+                                    <TextField label="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth sx={{ ...inputStyles }} error={!!errors.lastName} helperText={errors.lastName} required />
                                 </>
                             )}
-                            <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth sx={{ ...inputStyles }} error={!!errors.email} helperText={errors.email} />
-                            <TextField label="Password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} fullWidth sx={{ ...inputStyles }}
+                            <TextField label="Email" type="email" value={email}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (errors.submit) setErrors(prev => ({ ...prev, submit: null }));
+                                }}
+                                fullWidth sx={{ ...inputStyles }} error={!!errors.email} helperText={errors.email} required />
+                            <TextField label="Password" type={showPassword ? "text" : "password"} value={password}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    if (errors.submit) setErrors(prev => ({ ...prev, submit: null }));
+                                }}
+
+                                fullWidth sx={{ ...inputStyles }}
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
@@ -342,7 +403,7 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                                         </InputAdornment>
                                     ),
                                 }}
-                                error={!!errors.password} helperText={errors.password} />
+                                error={!!errors.password} helperText={errors.password} required />
                             {tab === 1 && (
                                 <TextField label="Repeat Password" type={showRepeatPassword ? "text" : "password"} value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} fullWidth sx={{ ...inputStyles }}
                                     InputProps={{
@@ -354,7 +415,7 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                                             </InputAdornment>
                                         ),
                                     }}
-                                    error={!!errors.repeatPassword} helperText={errors.repeatPassword} />
+                                    error={!!errors.repeatPassword} helperText={errors.repeatPassword} required />
                             )}
                             {tab === 0 && (
                                 <Typography sx={{ ...h7, cursor: "pointer", color: "#A4795B", textAlign: "right" }} onClick={() => setForgotOpen(true)}>
@@ -367,7 +428,7 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                                 <>
                                     <FormControlLabel sx={{ ...checkboxStyles }} control={
                                         <Checkbox checked={agreePrivacy} onChange={(e) => setAgreePrivacy(e.target.checked)} />
-                                    } label="I agree to the privacy policy" />
+                                    } label={<span>I agree to the privacy policy <span style={{ color: "#d32f2f" }}>*</span></span>} />
                                     {errors.agreePrivacy && <Typography sx={{ color: "#d32f2f", fontSize: "0.75rem", mt: 0.5 }}>{errors.agreePrivacy}</Typography>}
                                     <FormControlLabel sx={{ ...checkboxStyles }} control={
                                         <Checkbox checked={subscribeNewsletter} onChange={(e) => setSubscribeNewsletter(e.target.checked)} />
@@ -375,28 +436,36 @@ export default function LoginModal({ open, handleClose, openResetByLink = false,
                                 </>
                             )}
                         </Box>
-
+                        {errors.submit && (
+                            <Typography sx={{ color: "#d32f2f", fontSize: "0.875rem", textAlign: "center", mb: 2 }}>
+                                {errors.submit}
+                            </Typography>
+                        )}
                         <Button onClick={tab === 0 ? handleLogin : handleRegister} disabled={loading} sx={{ ...btnStyles, textTransform: "none", width: "100%" }}>
-                            {loading ? <CircularProgress size={24} /> : tab === 0 ? "Log in" : "Sign up"}
+                            {loading ? <CircularProgress size={24} color="inherit" /> : tab === 0 ? "Log in" : "Sign up"}
                         </Button>
 
-                        <Box display="flex" alignItems="center" gap={1}>
-                            <Divider sx={{ flex: 1 }} />
-                            <Typography variant="body2">OR</Typography>
-                            <Divider sx={{ flex: 1 }} />
-                        </Box>
+                        {tab === 0 && (
+                            <>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                    <Divider sx={{ flex: 1 }} />
+                                    <Typography variant="body2">OR</Typography>
+                                    <Divider sx={{ flex: 1 }} />
+                                </Box>
 
-                        <Box sx={{ display: "flex", justifyContent: "center" }}>
-                            { }
+                                <Box sx={{ display: "flex", justifyContent: "center" }}>
+                                    { }
 
-                            <GoogleLogin
-                                onSuccess={handleGoogleLogin}
-                                onError={() => { console.error("Google login failed") }}
-                                useOneTap={false}
-                                locale="en"
-                                text="continue_with"
-                            />
-                        </Box>
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleLogin}
+                                        onError={() => { console.error("Google login failed") }}
+                                        useOneTap={false}
+                                        locale="en"
+                                        text="continue_with"
+                                    />
+                                </Box>
+                            </>
+                        )}
                     </>
                 )}
             </Box>

@@ -1,18 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { apiWithAuth } from "../api/axios";
 
-// Получить активную корзину
 export const getActiveBasket = createAsyncThunk(
   "basket/getActiveBasket",
-  async (_, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem("access");
-      if (!token) {
-        return rejectWithValue("No access token");
-      }
-      const apiAuth = apiWithAuth(token);
-      const response = await apiAuth.get("/basket");
+      const response = await apiWithAuth.get("/basket/");
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -20,24 +13,12 @@ export const getActiveBasket = createAsyncThunk(
   }
 );
 
-// Добавить товар в корзину
 export const addItemToBasket = createAsyncThunk(
   "basket/addItem",
-  async ({ product_id, supply_id, accessory_id, quantity = 1 }, { rejectWithValue, getState }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem("access");
-      if (!token) {
-        return rejectWithValue("No access token");
-      }
-      const apiAuth = apiWithAuth(token);
-      
-      const payload = { quantity };
-      if (product_id) payload.product_id = product_id;
-      if (supply_id) payload.supply_id = supply_id;
-      if (accessory_id) payload.accessory_id = accessory_id;
-
-      const response = await apiAuth.post("/basket/add/", payload);
+      if (!payload) return rejectWithValue("Empty payload");
+      const response = await apiWithAuth.post("/basket/add/", payload);
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -45,18 +26,11 @@ export const addItemToBasket = createAsyncThunk(
   }
 );
 
-// Обновить товар в корзине
 export const updateBasketItem = createAsyncThunk(
   "basket/updateItem",
-  async ({ id, quantity }, { rejectWithValue, getState }) => {
+  async ({ id, quantity }, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem("access");
-      if (!token) {
-        return rejectWithValue("No access token");
-      }
-      const apiAuth = apiWithAuth(token);
-      const response = await apiAuth.patch(`/basket/update/${id}/`, { quantity });
+      const response = await apiWithAuth.patch(`/basket/update/${id}/`, { quantity });
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -64,18 +38,11 @@ export const updateBasketItem = createAsyncThunk(
   }
 );
 
-// Удалить товар из корзины
 export const deleteBasketItem = createAsyncThunk(
   "basket/deleteItem",
-  async (id, { rejectWithValue, getState }) => {
+  async (id, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem("access");
-      if (!token) {
-        return rejectWithValue("No access token");
-      }
-      const apiAuth = apiWithAuth(token);
-      await apiAuth.delete(`/basket/delete/${id}/`);
+      await apiWithAuth.delete(`/basket/delete/basket_item/${id}/`);
       return id;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -83,18 +50,12 @@ export const deleteBasketItem = createAsyncThunk(
   }
 );
 
-// Очистить корзину
 export const clearBasket = createAsyncThunk(
   "basket/clearBasket",
-  async (_, { rejectWithValue, getState }) => {
+  async (basketId, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem("access");
-      if (!token) {
-        return rejectWithValue("No access token");
-      }
-      const apiAuth = apiWithAuth(token);
-      await apiAuth.delete("/basket/clear/");
+      if (!basketId) return rejectWithValue("No basket ID provided");
+      await apiWithAuth.delete(`/basket/clear/${basketId}/`);
       return true;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -144,7 +105,6 @@ const basketSlice = createSlice({
       })
       .addCase(addItemToBasket.fulfilled, (state, action) => {
         state.loading = false;
-        // Обновляем корзину после добавления товара
         if (action.payload?.id) {
           state.basketId = action.payload.id;
         }
@@ -201,6 +161,7 @@ const basketSlice = createSlice({
 
 export const { setBasketId, clearBasketState } = basketSlice.actions;
 export default basketSlice.reducer;
+
 
 
 

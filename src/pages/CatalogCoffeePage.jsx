@@ -56,6 +56,19 @@ export default function CatalogCoffeePage() {
   useEffect(() => {
     dispatch(fetchProducts({ page: 1, limit: 1000, filters }));
   }, [dispatch, filters]);
+  
+  // Обновляем список продуктов при загрузке страницы и при возврате на вкладку
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Обновляем данные при возврате на вкладку
+        dispatch(fetchProducts({ page: 1, limit: 1000, filters }));
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [dispatch, filters]);
 
   const handlePageChange = (event, value) => {
     setPage(value);
@@ -83,7 +96,7 @@ export default function CatalogCoffeePage() {
   const filterContent = <Filter filters={filters} setFilters={setFilters} />;
 
   return (
-    <Grid container sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 2, md: 4 } }}>
+    <Grid container sx={{ px: { xs: 2, sm: 2, md: 4 }, py: { xs: 2, md: 4 } }}>
       {isMobile ? (
         <>
           <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -127,7 +140,7 @@ export default function CatalogCoffeePage() {
 
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
+                <CircularProgress sx={{ color: '#A4795B' }} />
               </Box>
             ) : (
               <>
@@ -156,7 +169,7 @@ export default function CatalogCoffeePage() {
 
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
+                <CircularProgress sx={{ color: '#A4795B' }}/>
               </Box>
             ) : (
               <>

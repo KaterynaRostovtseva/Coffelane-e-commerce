@@ -56,8 +56,6 @@ export default function Footer() {
         try {
             try {
                 const response = await api.post("/newsletter/subscribe", { email: value });
-                // console.log("✅ Newsletter subscription successful:", response.data);
-                
                 setSuccess(true);
                 setValue("");
                 setLoading(false);
@@ -74,7 +72,7 @@ export default function Footer() {
                 throw apiError;
             }
         } catch (err) {
-            // console.error("❌ Newsletter subscription error:", err.response?.data || err.message);
+            console.error("Newsletter subscription error:", err.response?.data || err.message);
             setError(
                 err.response?.data?.email?.[0] || 
                 err.response?.data?.message || 
