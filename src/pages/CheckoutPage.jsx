@@ -159,7 +159,7 @@ export default function CheckoutPage() {
     });
 
     const newErrors = { ...contactErrors };
-    
+
     if (!cardName.trim()) newErrors.cardName = "Card holder name required";
     else if (!/^[A-Za-z]+([ '-][A-Za-z]+)*$/.test(cardName))
       newErrors.cardName = "Invalid card name. Please enter first and last name.";
@@ -179,9 +179,13 @@ export default function CheckoutPage() {
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
+    const phoneStr = String(phone || "");
 
-    const cleanPhone = phone.replace(/\D/g, "");
-    const formattedPhone = cleanPhone.startsWith("+") ? cleanPhone : `+${cleanPhone}`;
+    const cleanPhone = phoneStr.replace(/\D/g, "");
+    const formattedPhone = cleanPhone.startsWith("+")
+      ? cleanPhone
+      : `+${cleanPhone}`;
+
 
     const orderData = {
       billing_details: {

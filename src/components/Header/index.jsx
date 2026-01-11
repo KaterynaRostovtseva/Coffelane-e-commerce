@@ -47,7 +47,7 @@ function Header() {
 
     const user = useSelector((state) => state.auth.user);
     const isAdmin = useSelector((state) => state.auth.isAdmin);
-    // console.log("Header - user:", useSelector((state) => state.auth.user));
+    
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (searchInput.trim()) {

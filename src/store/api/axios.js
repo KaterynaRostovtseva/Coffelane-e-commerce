@@ -118,21 +118,12 @@ apiWithAuth.interceptors.response.use(
             const hoursLeft = Math.floor((timeUntilExpiration % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             
             console.log(`✅ Новый refresh token получен! Истекает через ${daysLeft} дней, ${hoursLeft} часов (${new Date(newExpirationTime).toLocaleString()})`);
-            
-            // Предупреждение, если refresh token истекает через 3 дня или меньше
-            // if (daysLeft <= 3 && daysLeft > 0) {
-            //   console.warn(`⚠️ ВНИМАНИЕ: Refresh token истекает через ${daysLeft} дней! Рекомендуется перелогиниться.`);
-            // } else if (daysLeft <= 0) {
-            //   console.error(`❌ Refresh token уже истек!`);
-            // }
           } catch (e) {
             console.warn("Failed to decode new refresh token:", e);
           }
         } else {
-          console.warn("⚠️ ВНИМАНИЕ: Бэкенд не вернул новый refresh token! Используется старый.");
-          console.warn("⚠️ Это может привести к истечению refresh token через некоторое время.");
+          console.warn("This may cause the refresh token to expire after some time.");
           
-          // Проверяем срок действия текущего refresh token
           try {
             const currentRefreshToken = getCleanToken('refresh');
             if (currentRefreshToken) {
@@ -140,7 +131,7 @@ apiWithAuth.interceptors.response.use(
               const expirationTime = decoded.exp * 1000;
               const timeUntilExpiration = expirationTime - Date.now();
               const daysLeft = Math.floor(timeUntilExpiration / (1000 * 60 * 60 * 24));
-              console.warn(`⚠️ Текущий refresh token истекает через ${daysLeft} дней (${new Date(expirationTime).toLocaleString()})`);
+              console.warn(`Текущий refresh token истекает через ${daysLeft} дней (${new Date(expirationTime).toLocaleString()})`);
             }
           } catch (e) {
             //Ignoring errors
