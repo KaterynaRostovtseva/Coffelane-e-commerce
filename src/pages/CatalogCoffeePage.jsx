@@ -57,9 +57,11 @@ export default function CatalogCoffeePage() {
     dispatch(fetchProducts({ page: 1, limit: 1000, filters }));
   }, [dispatch, filters]);
   
+  // Обновляем список продуктов при загрузке страницы и при возврате на вкладку
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
+        // Обновляем данные при возврате на вкладку
         dispatch(fetchProducts({ page: 1, limit: 1000, filters }));
       }
     };

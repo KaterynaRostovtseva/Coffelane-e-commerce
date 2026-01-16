@@ -23,6 +23,7 @@ export const fetchFavorites = createAsyncThunk(
     }
 
     try {
+      // Используем apiWithAuth напрямую - интерцептор автоматически добавит токен
       const res = await apiWithAuth.get("/favorites");
       const items = res.data.items || [];
 
@@ -89,7 +90,11 @@ export const fetchFavorites = createAsyncThunk(
 
       return mappedItems;
     } catch (error) {
+      // Интерцептор автоматически обработает 401 и попытается обновить токен
+      // Если токен не может быть обновлен, интерцептор отклонит запрос
+      // Здесь просто возвращаем пустой массив или ошибку
       if (error.response?.status === 401) {
+        // Если после попытки рефреша все еще 401, значит сессия истекла
         return [];
       }
       return rejectWithValue(error.response?.data?.detail || "Error loading favorites");
@@ -121,6 +126,7 @@ export const toggleFavoriteItem = createAsyncThunk(
     }
 
     try {
+      // Используем apiWithAuth напрямую - интерцептор автоматически добавит токен
       const response = await apiWithAuth.post(`/favorites/${itemType}/${itemId}/toggle/`);
       return { success: true, itemType, itemId };
     } catch (error) {
@@ -136,6 +142,8 @@ export const toggleFavoriteItem = createAsyncThunk(
           return rejectWithValue("Too many requests. Please try again later.");
         }
       } else if (error.response?.status === 401) {
+        // Интерцептор уже попытался обновить токен
+        // Если все еще 401, значит сессия истекла
         return rejectWithValue("User not authenticated. Please log in.");
       }
       return rejectWithValue(error.response?.data?.detail || "Error toggling favorite");

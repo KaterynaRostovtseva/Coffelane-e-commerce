@@ -17,6 +17,7 @@ export default function Filter({ filters, setFilters }) {
     }));
   };
 
+  // Загружаем доступные бренды из всех продуктов и аксессуаров
   useEffect(() => {
     const fetchBrands = async () => {
       try {
@@ -54,6 +55,7 @@ export default function Filter({ filters, setFilters }) {
         setAvailableBrands(Array.from(new Set(allBrandsList)));
       } catch (error) {
         console.error("Error fetching brands:", error);
+        // В случае ошибки оставляем стандартные бренды
       }
     };
 

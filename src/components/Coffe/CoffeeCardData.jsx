@@ -45,8 +45,10 @@ export default function CoffeeCardData({ products, favorites, onToggleFavorite, 
         const cartKey = supply ? `${item.id}-${supply.id}` : `${item.id}-default`;
         const isInCart = cartEntries.some(([key]) => key === cartKey);
         
+        // Извлекаем фото из разных вариантов структуры данных
         let mainPhoto = null;
         
+        // Проверяем photos_url
         if (item.photos_url && Array.isArray(item.photos_url) && item.photos_url.length > 0) {
           const firstPhoto = item.photos_url[0];
           if (typeof firstPhoto === 'string') {
@@ -56,6 +58,7 @@ export default function CoffeeCardData({ products, favorites, onToggleFavorite, 
           }
         }
         
+        // Если не нашли в photos_url, проверяем product_photos
         if (!mainPhoto && item.product_photos && Array.isArray(item.product_photos) && item.product_photos.length > 0) {
           const firstPhoto = item.product_photos[0];
           if (firstPhoto && typeof firstPhoto === 'object') {
@@ -73,6 +76,7 @@ export default function CoffeeCardData({ products, favorites, onToggleFavorite, 
           }
         }
         
+        // Если URL относительный, добавляем базовый URL
         if (mainPhoto && typeof mainPhoto === 'string' && !mainPhoto.startsWith('http') && !mainPhoto.startsWith('blob:')) {
           const baseUrl = 'https://onlinestore-928b.onrender.com';
           mainPhoto = mainPhoto.startsWith('/') ? `${baseUrl}${mainPhoto}` : `${baseUrl}/${mainPhoto}`;
