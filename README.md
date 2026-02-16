@@ -1,10 +1,12 @@
 
 # ☕ Coffelane — E-commerce Coffee Store
 
+
 🔗 **Live Demo:** https://coffelane.vercel.app/  
 📂 **GitHub:** https://github.com/KaterynaRostovtseva/Coffelane-e-commerce
 
 Responsive e-commerce web application for ordering coffee and accessories with a complete shopping and checkout flow.
+
 
 ---
 

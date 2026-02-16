@@ -7,6 +7,7 @@ import AccessoriesInfo from "../components/AccessoriesCard/AccessoriesInfo.jsx";
 import AddToCartButtons from "../components/AccessoriesCard/AddToCartButtons.jsx";
 import AccessoriesImageSlider from "../components/AccessoriesCard/AccessoriesImageSlider.jsx";
 import RecommendedAccessories from "../components/AccessoriesCard/RecommendedAccessories.jsx";
+import { buildImageUrl } from "../components/utils/helpers.js";
 
 export default function AccessoriesCardPage() {
   const { id } = useParams();
@@ -25,6 +26,26 @@ export default function AccessoriesCardPage() {
 
   const recommended = items.filter((p) => String(p.id) !== String(id)).slice(0, 3);
 
+  const getPhotosForSlider = (accessory) => {
+  // 1. Собираем массив из всех возможных источников
+  const rawPhotos = 
+    (accessory.accessory_photos?.length ? accessory.accessory_photos : null) || 
+    (accessory.photos_url?.length ? accessory.photos_url : null) || 
+    (accessory.product_photos?.length ? accessory.product_photos : null);
+
+  if (rawPhotos) {
+    // Преобразуем массив объектов или строк в массив полных URL
+    return rawPhotos.map(p => {
+      const path = p?.photo || p?.url || (typeof p === "string" ? p : null);
+      return buildImageUrl(path);
+    }).filter(Boolean); // Убираем пустые значения
+  }
+
+  // 2. Если массивов нет, пробуем одиночные поля
+  const singlePath = accessory.cover || accessory.image || accessory.photo;
+  return singlePath ? [buildImageUrl(singlePath)] : [];
+};
+
   return (
     <Box sx={{ width: "100%", pb: 10 }}>
       <Grid container sx={{ 
@@ -33,8 +54,8 @@ export default function AccessoriesCardPage() {
         justifyContent: "center", gap: { xs: 4, md: 10 }
       }}>
         <Box sx={{ width: { xs: "100%", md: "400px" }, display: "flex", justifyContent: "center" }}>
-          <AccessoriesImageSlider 
-            photos={selectedAccessory.photos_url || selectedAccessory.accessory_photos || []} 
+          <AccessoriesImageSlider  
+           photos={getPhotosForSlider(selectedAccessory)}
             productName={selectedAccessory.name}
           />
         </Box>
