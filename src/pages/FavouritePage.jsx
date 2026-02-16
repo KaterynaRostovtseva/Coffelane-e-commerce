@@ -1,8 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { 
-  Box, Typography, CircularProgress, Card, CardContent, 
-  CardMedia, Button, IconButton, Snackbar, Tooltip, useMediaQuery, useTheme 
-} from "@mui/material";
+import { Box, Typography, CircularProgress, Card, CardContent, CardMedia, Button, IconButton, Snackbar, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 import ShareIcon from "@mui/icons-material/Share";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { useDispatch, useSelector } from "react-redux";
@@ -19,52 +16,31 @@ import ClampText from "../components/ClampText.jsx";
 import LoginModal from "../components/Modal/LoginModal.jsx";
 import { formatPrice, getPrice, getProductPrice } from "../components/utils/priceUtils.jsx";
 import CoffeeIcon from '@mui/icons-material/Coffee';
+import { buildImageUrl } from "../components/utils/helpers.js";
 
-// Вспомогательный компонент для изображений с обработкой ошибок (как в CoffeeCardData)
-const FavoriteProductImage = ({ item, isMobile }) => {
+const FavoriteProductImage = ({ item }) => {
   const [hasError, setHasError] = React.useState(false);
-  
-  // Извлекаем фото из различных полей (как в других компонентах)
-  let imageUrl = null;
-  
-  // Проверяем photos_url
-  if (item.photos_url && Array.isArray(item.photos_url) && item.photos_url.length > 0) {
-    const firstPhoto = item.photos_url[0];
-    imageUrl = firstPhoto?.url || firstPhoto?.photo || (typeof firstPhoto === 'string' ? firstPhoto : null);
+
+  const potentialPhotos = [
+    item.image,
+    ...(Array.isArray(item.photos_url) ? item.photos_url : []),
+    ...(Array.isArray(item.product_photos) ? item.product_photos : []),
+    ...(Array.isArray(item.accessory_photos) ? item.accessory_photos : [])
+  ];
+
+  let rawPhoto = potentialPhotos.find(p => p !== null && p !== undefined);
+
+  if (rawPhoto && typeof rawPhoto === 'object') {
+    rawPhoto = rawPhoto.url || rawPhoto.photo || rawPhoto.photo_url || rawPhoto.image_url;
   }
-  
-  // Проверяем product_photos (для продуктов)
-  if (!imageUrl && item.product_photos && Array.isArray(item.product_photos) && item.product_photos.length > 0) {
-    const firstPhoto = item.product_photos[0];
-    if (firstPhoto.photo) {
-      imageUrl = typeof firstPhoto.photo === 'string' ? firstPhoto.photo : (firstPhoto.photo.url || firstPhoto.photo.photo_url);
-    } else {
-      imageUrl = firstPhoto?.url || firstPhoto?.photo || null;
-    }
-  }
-  
-  // Проверяем accessory_photos (для аксессуаров)
-  if (!imageUrl && item.accessory_photos && Array.isArray(item.accessory_photos) && item.accessory_photos.length > 0) {
-    const firstPhoto = item.accessory_photos[0];
-    imageUrl = firstPhoto?.url || firstPhoto?.photo || (typeof firstPhoto === 'string' ? firstPhoto : null);
-  }
-  
-  // Если URL относительный, добавляем базовый URL
-  if (imageUrl && typeof imageUrl === 'string' && !imageUrl.startsWith('http') && !imageUrl.startsWith('blob:')) {
-    const baseUrl = 'https://onlinestore-928b.onrender.com';
-    imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
-  }
+  const imageUrl = buildImageUrl(rawPhoto);
 
   if (!imageUrl || hasError) {
     return (
       <Box sx={{ 
-        width: "100%", 
-        height: "100%", 
-        display: "flex", 
-        alignItems: "center", 
-        justifyContent: "center", 
-        bgcolor: "#f5f5f5",
-        borderRadius: "12px"
+        width: "100%", height: "100%", display: "flex", 
+        alignItems: "center", justifyContent: "center", 
+        bgcolor: "#f5f5f5", borderRadius: "12px" 
       }}>
         <CoffeeIcon sx={{ color: "#ccc", fontSize: 50 }} />
       </Box>
@@ -92,13 +68,14 @@ export default function FavouritePage() {
   const token = useSelector(state => state.auth.token);
   const user = useSelector(state => state.auth.user);
   const cartEntries = useSelector(selectCartItems);
-  const currency = useSelector((state) => state.settings?.selectedCurrency || 'USD');
+  const currency = useSelector((state) => state.settings.currency || 'USD');
   
   const [loginOpen, setLoginOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   
   const hasLoadedRef = useRef(false);
+  const lastCurrencyRef = useRef(null);
   const modalOpenedRef = useRef(false);
 
 
@@ -111,11 +88,12 @@ export default function FavouritePage() {
       return;
     }
 
-    if (!hasLoadedRef.current) {
+    if (!hasLoadedRef.current || lastCurrencyRef.current !== currency) {
       hasLoadedRef.current = true;
+      lastCurrencyRef.current = currency;
       dispatch(fetchFavorites());
     }
-  }, [token, user, dispatch]);
+  }, [token, user, currency, dispatch]);
 
   const favoritesMap = useMemo(() => {
     return favorites.reduce((acc, item) => {
@@ -146,14 +124,12 @@ export default function FavouritePage() {
     
     const isProduct = item.type === "product";
     const supply = isProduct ? item.supplies?.[0] : null;
-    
-    // Проверка наличия товара
     const isOutOfStock = isProduct 
       ? (!supply || Number(supply.quantity || 0) <= 0)
       : ((item.quantity !== undefined ? Number(item.quantity) : 0) <= 0);
     
     if (isOutOfStock) {
-      return; // Не добавляем товар, если его нет в наличии
+      return; 
     }
     
     dispatch(addToCart({
@@ -197,7 +173,7 @@ export default function FavouritePage() {
             Favourite products
           </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: { xs: "flex-start", md: "center" }, gap: 1, mb: 4, flexWrap: "nowrap" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: { xs: "flex-start", sm: "center" }, gap: 1, mb: 4, flexWrap: "nowrap" }}>
             <Tooltip title="Share favorites list">
               <IconButton onClick={handleShare} sx={{ color: "#16675C", "&:hover": { backgroundColor: "rgba(22, 103, 92, 0.1)" } }}>
                 <ShareIcon />
@@ -221,10 +197,8 @@ export default function FavouritePage() {
               ? (supply ? getPrice(supply, currency) : getProductPrice(item, currency))
               : getProductPrice(item, currency);
             
-            // Проверка наличия товара
             let isOutOfStock = false;
             if (isProduct) {
-              // Для продуктов проверяем quantity в supplies
               if (!item.supplies || item.supplies.length === 0) {
                 isOutOfStock = true;
               } else if (!supply) {
@@ -234,7 +208,6 @@ export default function FavouritePage() {
                 isOutOfStock = supplyQuantity <= 0;
               }
             } else {
-              // Для аксессуаров проверяем quantity
               const itemQuantity = item.quantity !== undefined && item.quantity !== null ? Number(item.quantity) : 0;
               isOutOfStock = itemQuantity <= 0;
             }
@@ -245,7 +218,6 @@ export default function FavouritePage() {
                 height: { xs: "auto", md: 480 }, 
                 display: "flex", flexDirection: "column", 
                 borderRadius: "24px", p: { xs: 1.5, md: 2 }, boxShadow: 2,
-                opacity: isOutOfStock ? 0.7 : 1
               }}>
           
                 <Box sx={{ position: "relative", width: "100%", height: { xs: 200, md: 250 }, mb: { xs: 1.5, md: 2 } }}>

@@ -1,40 +1,67 @@
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+export const BASE_URL = "https://onlinestore-928b.onrender.com";
+const API_URL = `${BASE_URL}/api`;
 
-const API_URL = 'https://onlinestore-928b.onrender.com/api';
+const getCleanToken = (key) => {
+  const token = localStorage.getItem(key);
+  if (!token || ['null', 'undefined', '""'].includes(token)) return null;
+  return token.replace(/^"+|"+$/g, '');
+};
 
-// Базовий екземпляр для звичайних запитів (логін, реєстрація, рефреш)
 const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
+
 api.interceptors.request.use((config) => {
-  const currency = localStorage.getItem('currency') || 'USD';
+  // Для админских запросов НЕ добавляем currency, чтобы избежать ошибок на бэкенде
+  const isAdminRequest = config.params?._admin === 'true';
   
-  config.params = {
-    ...config.params,
-    currency: currency,
-  };
-  
+  if (isAdminRequest) {
+    // Удаляем служебный параметр _admin, НЕ добавляем currency для админских запросов
+    const { _admin, ...restParams } = config.params || {};
+    config.params = restParams;
+  } else {
+    // Для обычных запросов добавляем currency из localStorage
+    config.params = { 
+      ...(config.params || {}), 
+      currency: localStorage.getItem('currency') || 'USD' 
+    };
+  }
   return config;
-}, (error) => {
-  return Promise.reject(error);
 });
+
+// Интерцептор ответа для автоматического повтора без currency при 500 ошибке
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Если получили 500 или Network Error (который часто скрывает 500 из-за CORS)
+    // и в запросе был параметр currency
+    if ((!error.response || error.response?.status === 500) && originalRequest.params?.currency) {
+      // Проверяем, не был ли это уже повторный запрос
+      if (originalRequest._retryWithoutCurrency) {
+        return Promise.reject(error);
+      }
+      
+      // Создаем копию параметров БЕЗ currency
+      const { currency, ...paramsWithoutCurrency } = originalRequest.params;
+      originalRequest.params = paramsWithoutCurrency;
+      originalRequest._retryWithoutCurrency = true;
+      
+      // Повторяем запрос
+      return api(originalRequest);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const apiWithAuth = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
-
-const getCleanToken = (key) => {
-  const storageKey = key === 'refresh' ? 'refresh' : 'access';
-  const rawToken = localStorage.getItem(storageKey);
-  if (!rawToken || rawToken === 'null' || rawToken === 'undefined' || rawToken === '""') {
-    return null;
-  }
-  return rawToken.replace(/^"+|"+$/g, '');
-};
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -48,9 +75,22 @@ const processQueue = (error, token = null) => {
 };
 
 apiWithAuth.interceptors.request.use((config) => {
-  const token = getCleanToken('access'); 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const token = getCleanToken('access');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  
+  // Для админских запросов НЕ добавляем currency, чтобы избежать ошибок на бэкенде
+  const isAdminRequest = config.params?._admin === 'true';
+  
+  if (isAdminRequest) {
+    // Удаляем служебный параметр _admin, НЕ добавляем currency для админских запросов
+    const { _admin, ...restParams } = config.params || {};
+    config.params = restParams;
+  } else if (config.method?.toLowerCase() !== 'delete') {
+    // Для обычных запросов (не DELETE) добавляем currency из localStorage
+    config.params = { 
+      ...(config.params || {}), 
+      currency: localStorage.getItem('currency') || 'USD' 
+    };
   }
   return config;
 });
@@ -59,139 +99,56 @@ apiWithAuth.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (!originalRequest || !originalRequest.url) {
-      return Promise.reject(error);
-    }
 
-    if (originalRequest.url.includes('/auth/refresh')) {
-      isRefreshing = false;
-      return Promise.reject(error);
-    }
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (originalRequest._skipAuthRefresh) {
-        return Promise.reject(error);
-      }
-
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/refresh')) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return apiWithAuth.request(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiWithAuth.request(originalRequest);
+        });
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
+      const refreshToken = getCleanToken('refresh');
+      if (!refreshToken) {
+        isRefreshing = false;
+        logoutUser();
+        return Promise.reject(error);
+      }
+
       try {
-        const refreshToken = getCleanToken('refresh');
-        if (!refreshToken) {
-          isRefreshing = false;
-          processQueue(new Error("No refresh token"), null);
-          localStorage.removeItem("access");
-          localStorage.removeItem("refresh");
-          window.dispatchEvent(new CustomEvent('tokenExpired'));
-          return Promise.reject(new Error("No refresh token"));
-        }
+        const { data } = await api.post('/auth/refresh', { refresh: refreshToken });
+        const access = data.access.replace(/^"+|"+$/g, '');
+        const refresh = data.refresh?.replace(/^"+|"+$/g, '');
 
-        const response = await api.post('/auth/refresh', { refresh: refreshToken });
-        const { access, refresh } = response.data;
+        localStorage.setItem("access", access);
+        if (refresh) localStorage.setItem("refresh", refresh);
 
-        try {
-          const oldRefreshToken = getCleanToken('refresh');
-          if (oldRefreshToken) {
-            const oldDecoded = jwtDecode(oldRefreshToken);
-            const oldExpirationTime = oldDecoded.exp * 1000;
-            const timeUntilExpiration = oldExpirationTime - Date.now();
-            const daysLeft = Math.floor(timeUntilExpiration / (1000 * 60 * 60 * 24));
-            console.log(`🔄 Старый refresh token истекает через ${daysLeft} дней (${new Date(oldExpirationTime).toLocaleString()})`);
-          }
-        } catch (e) {
-          // Ignoring decoding errors
-        }
-
-        if (access) {
-          const cleanAccess = access.replace(/^"+|"+$/g, '');
-          localStorage.setItem("access", cleanAccess);
-        }
-        if (refresh) {
-          const cleanRefresh = refresh.replace(/^"+|"+$/g, '');
-          localStorage.setItem("refresh", cleanRefresh);
-          
-          try {
-            const newDecoded = jwtDecode(cleanRefresh);
-            const newExpirationTime = newDecoded.exp * 1000;
-            const timeUntilExpiration = newExpirationTime - Date.now();
-            const daysLeft = Math.floor(timeUntilExpiration / (1000 * 60 * 60 * 24));
-            const hoursLeft = Math.floor((timeUntilExpiration % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            
-            console.log(`✅ Новый refresh token получен! Истекает через ${daysLeft} дней, ${hoursLeft} часов (${new Date(newExpirationTime).toLocaleString()})`);
-            
-            // Предупреждение, если refresh token истекает через 3 дня или меньше
-            // if (daysLeft <= 3 && daysLeft > 0) {
-            //   console.warn(`⚠️ ВНИМАНИЕ: Refresh token истекает через ${daysLeft} дней! Рекомендуется перелогиниться.`);
-            // } else if (daysLeft <= 0) {
-            //   console.error(`❌ Refresh token уже истек!`);
-            // }
-          } catch (e) {
-            console.warn("Failed to decode new refresh token:", e);
-          }
-        } else {
-          console.warn("⚠️ ВНИМАНИЕ: Бэкенд не вернул новый refresh token! Используется старый.");
-          console.warn("⚠️ Это может привести к истечению refresh token через некоторое время.");
-          
-          // Проверяем срок действия текущего refresh token
-          try {
-            const currentRefreshToken = getCleanToken('refresh');
-            if (currentRefreshToken) {
-              const decoded = jwtDecode(currentRefreshToken);
-              const expirationTime = decoded.exp * 1000;
-              const timeUntilExpiration = expirationTime - Date.now();
-              const daysLeft = Math.floor(timeUntilExpiration / (1000 * 60 * 60 * 24));
-              console.warn(`⚠️ Текущий refresh token истекает через ${daysLeft} дней (${new Date(expirationTime).toLocaleString()})`);
-            }
-          } catch (e) {
-            //Ignoring errors
-          }
-        }
-        window.dispatchEvent(new CustomEvent('tokenRefreshed', {
-          detail: { access, refresh }
-        }));
-
-        const cleanAccess = access?.replace(/^"+|"+$/g, '') || access;
-        processQueue(null, cleanAccess);
+        processQueue(null, access);
         isRefreshing = false;
 
-        originalRequest.headers.Authorization = `Bearer ${cleanAccess}`;
+        originalRequest.headers.Authorization = `Bearer ${access}`;
         return apiWithAuth.request(originalRequest);
       } catch (err) {
         isRefreshing = false;
         processQueue(err, null);
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          const errorDetail = err.response?.data?.detail || err.response?.data?.message || '';
-          if (errorDetail.includes('Token is expired') || 
-              errorDetail.includes('token_not_valid') || 
-              errorDetail.includes('Invalid token') ||
-              err.response?.status === 401) {
-            localStorage.removeItem("access");
-            localStorage.removeItem("refresh");
-            window.dispatchEvent(new CustomEvent('tokenExpired'));
-          }
-        } else if (err.message === "No refresh token") {
-          localStorage.removeItem("access");
-          localStorage.removeItem("refresh");
-          window.dispatchEvent(new CustomEvent('tokenExpired'));
-        }
+        logoutUser();
         return Promise.reject(err);
       }
     }
     return Promise.reject(error);
   }
 );
+
+function logoutUser() {
+  localStorage.removeItem("access");
+  localStorage.removeItem("refresh");
+  window.dispatchEvent(new CustomEvent('tokenExpired'));
+}
 
 export default api;
 

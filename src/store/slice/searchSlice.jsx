@@ -1,4 +1,4 @@
-import {createSlice, createAsyncThunk} from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../api/axios";
 
 const filterItems = (items, query, extraFields = []) => {
@@ -6,18 +6,19 @@ const filterItems = (items, query, extraFields = []) => {
   if (!q) return [];
 
   return items.filter((item) => {
-    
     const fieldsToSearch = [
-      item.name, 
-      item.brand, 
-      item.title, 
-      ...extraFields.map(f => item[f])
-    ].filter(Boolean); 
+      item.name,
+      item.brand,
+      item.title,
+      ...extraFields.map((f) => item[f]),
+    ]
+      .filter(Boolean)
+      .map((v) => String(v).toLowerCase());
 
-    return fieldsToSearch.some(fieldValue => {
-      const words = fieldValue.toLowerCase().split(/\s+/); 
-      return words.some(word => word.startsWith(q)); 
-    });
+    if (fieldsToSearch.length === 0) return false;
+    return fieldsToSearch.some((fieldValue) =>
+      fieldValue.split(/\s+/).some((word) => word.includes(q))
+    );
   });
 };
 
@@ -91,9 +92,10 @@ export const searchAll = createAsyncThunk(
     try {
       if (!query?.trim()) return { products: [], accessories: [], totalItems: 0 };
 
+      // currency добавляется автоматически через интерцептор в axios.js
       const [pRes, aRes] = await Promise.all([
-        api.get("/products", { params: { page: 1, size: 100 } }),
-        api.get("/accessories", { params: { page: 1, size: 100 } }),
+        api.get("/products", { params: { page: 1, size: 200 } }),
+        api.get("/accessories", { params: { page: 1, size: 200 } }),
       ]);
 
       const getArray = (res) => {
