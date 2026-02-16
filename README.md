@@ -1,10 +1,12 @@
 
 # ☕ Coffelane — E-commerce Coffee Store
 
-🔗 **Live Demo:** https://coffelaneshop.vercel.app/  
-📂 **GitHub:** https://github.com/CoffeLane/Coffelane-online-store-NEW
+
+🔗 **Live Demo:** https://coffelane.vercel.app/  
+📂 **GitHub:** https://github.com/KaterynaRostovtseva/Coffelane-e-commerce
 
 Responsive e-commerce web application for ordering coffee and accessories with a complete shopping and checkout flow.
+
 
 ---
 
@@ -62,7 +64,7 @@ src/
 ## ▶️ Getting Started
 
 ### 1. Clone the repository
-git clone https://github.com/CoffeLane/Coffelane-online-store-NEW.git
+git clone https://github.com/KaterynaRostovtseva/Coffelane-e-commerce.git
 
 cd Coffelane-e-commerce
 
@@ -104,3 +106,10 @@ Improved admin analytics dashboard
 
 ---
 
+## 👩‍💻 Author
+
+### Kateryna Rostovtseva
+
+GitHub: https://github.com/KaterynaRostovtseva
+
+LinkedIn: https://www.linkedin.com/in/kateryna-rostovtseva
